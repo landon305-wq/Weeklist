@@ -23,15 +23,19 @@ window.WC_SECTIONS = {
     frozen:     { name: 'Frozen',               icon: '🧊' }
 };
 
-// Typical walking order. Real stores vary; in live Kroger mode the list uses the real aisle numbers instead.
+// Typical walking orders. Real stores vary; in live Kroger mode the list uses the real aisle numbers instead.
 window.WC_LAYOUTS = {
     aldi: {
-        name: 'ALDI', note: 'ALDI stores are small and laid out almost the same everywhere: produce and bread first, then the dry-goods aisles, then the refrigerated wall (meat, deli, dairy) along the back, and frozen near the registers.',
+        name: 'ALDI-style', note: 'Small no-frills stores (ALDI, Lidl, Save A Lot) are laid out almost the same everywhere: produce and bread first, then the dry-goods aisles, then the refrigerated wall (meat, deli, dairy) along the back, and frozen near the registers.',
         order: ['produce', 'bakery', 'breakfast', 'pasta', 'canned', 'intl', 'condiments', 'baking', 'meat', 'deli', 'dairy', 'frozen']
     },
-    kroger: {
-        name: 'Kroger', note: 'Typical Kroger flow: produce at the entrance, bakery and deli next, meat along the back wall, the center aisles, then frozen and dairy last so cold things stay cold.',
+    standard: {
+        name: 'Supermarket', note: 'Typical supermarket flow: produce at the entrance, bakery and deli next, meat along the back wall, the center aisles, then frozen and dairy last so cold things stay cold.',
         order: ['produce', 'bakery', 'deli', 'meat', 'pasta', 'intl', 'canned', 'condiments', 'baking', 'breakfast', 'frozen', 'dairy']
+    },
+    walmart: {
+        name: 'Supercenter', note: 'Supercenters (Walmart, Target, Meijer) usually put produce at the grocery entrance, bakery and deli beside it, dry-goods aisles in the middle, and meat, dairy and frozen along the back wall.',
+        order: ['produce', 'bakery', 'deli', 'pasta', 'canned', 'intl', 'condiments', 'baking', 'breakfast', 'meat', 'dairy', 'frozen']
     }
 };
 
@@ -174,3 +178,31 @@ window.WC_ITEMS = [
     { id: 'meatballs', n: 'Frozen Italian meatballs', s: 'frozen', p: 28, u: 'meatball', pl: 'meatballs', a: 5.49, k: 6.99, pk: '28 oz bag', t: 'frozen italian style meatballs 28 oz', ct: 1, must: 'meatball', not: 'turkey|chicken|vegetarian|meatless|sub|sauce', alg: ['gluten', 'dairy', 'beef', 'pork', 'egg'] },
     { id: 'hashbrown', n: 'Frozen shredded hash browns', s: 'frozen', p: 30, u: 'oz', a: 2.29, k: 2.99, pk: '30 oz bag', t: 'frozen shredded hash browns 30 oz', oz: 1, must: 'hash brown', not: 'patties|patty|casserole|bowl|cheesy' }
 ];
+
+// ---------- nutrition: [calories, grams of protein] per recipe unit (approximate, USDA-style averages) ----------
+window.WC_NUTR = {
+    onion: [44, 1.2], redonion: [44, 1.2], garlic: [4, 0.2], bellpep: [30, 1], carrot: [25, 0.6], babycarrot: [10, 0.2], celery: [6, 0.3],
+    potato: [350, 9.3], sweetpot: [390, 7.3], broccoli: [154, 12.8], romaine: [29, 2], tomato: [11, 0.5], cilantro: [10, 0.9], lime: [20, 0.5],
+    lemon: [17, 0.6], banana: [105, 1.3], apple: [95, 0.5], berries: [145, 3], spinach: [7, 0.9], zucchini: [33, 2.4], mushroom: [6, 0.9],
+    greenonion: [32, 1.8], cucumber: [45, 2], avocado: [240, 3], jalapeno: [4, 0.1], slaw: [17, 0.9],
+    bread: [70, 2.5], buns: [120, 4], hoagie: [210, 7], tortilla: [140, 4], corntort: [52, 1.4],
+    rotis: [1400, 190], delitur: [30, 5], hummus: [70, 2],
+    chkbreast: [545, 102], chkthigh: [640, 88], gbeef: [1000, 77], gturkey: [680, 85], stewbeef: [700, 92], porkchop: [650, 95],
+    porkshould: [1050, 77], itsausage: [1300, 60], smsausage: [90, 3.5], bacon: [45, 3],
+    eggs: [72, 6.3], milk: [122, 8], butter: [102, 0.1], cheddar: [455, 26], mozz: [340, 24], mexcheese: [440, 26], parm: [420, 28],
+    sourcream: [445, 5], creamch: [99, 1.7], yogurt: [130, 23], cream: [820, 7], slcheese: [90, 5.5], ricotta: [430, 28],
+    oats: [300, 10.5], pancake: [450, 10], syrup: [840, 0], granola: [480, 12], pb: [95, 3.5], jelly: [50, 0], honey: [64, 0.1],
+    spaghetti: [1600, 56], penne: [1600, 56], elbow: [1600, 56], eggnoodle: [1730, 64], lasagna: [1600, 56], rice: [675, 13], ramen: [380, 9],
+    blackbean: [385, 25], kidbean: [350, 23], chickpea: [420, 21], refried: [400, 22], dicedtom: [70, 3], crushtom: [230, 11], tompaste: [140, 7],
+    broth: [10, 1.5], tuna: [100, 22], corncan: [230, 7], soupcream: [300, 6],
+    taco: [90, 2], salsa: [70, 3], enchsauce: [80, 2], greenchile: [20, 1], soy: [9, 1.3], teriyaki: [16, 1], coconut: [700, 7], curry: [7, 0.3],
+    marinara: [400, 12], bbq: [400, 1], mayo: [95, 0.1], ranch: [70, 0.2], caesar: [80, 0.3], pesto: [1100, 20], italdress: [40, 0], breadcrumb: [430, 14],
+    oil: [120, 0], flour: [455, 13], sugar: [775, 0], brownsugar: [830, 0], salt: [0, 0], pepper: [6, 0.2], garpow: [10, 0.5], italseas: [5, 0.2],
+    chilipow: [8, 0.4], cumin: [8, 0.4], paprika: [6, 0.3], cinnamon: [6, 0.1], cornstarch: [30, 0], ketchup: [20, 0.2], mustard: [10, 0.6], vinegar: [3, 0],
+    frzbroc: [9, 0.8], frzmixed: [18, 0.9], frzpeas: [22, 1.5], frzcorn: [24, 0.8], frzstirfry: [10, 0.6], frzgreenbean: [9, 0.5],
+    salmon: [950, 92], tilapia: [435, 90], shrimp: [385, 92], meatballs: [80, 4.5], hashbrown: [20, 0.5]
+};
+// Spoils within about a week (used for the "fresh food used" meter and to steer away from waste).
+// Onions, potatoes, garlic, carrots, cheese, eggs, butter and frozen/canned food keep for weeks, and meat can be frozen.
+window.WC_PERISHABLE = ['romaine', 'spinach', 'cilantro', 'berries', 'banana', 'avocado', 'tomato', 'mushroom', 'greenonion', 'cucumber',
+    'zucchini', 'bellpep', 'broccoli', 'slaw', 'celery', 'rotis', 'delitur', 'hummus', 'cream', 'ricotta', 'milk', 'bread', 'buns', 'hoagie', 'sourcream'];

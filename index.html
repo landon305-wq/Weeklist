@@ -4,14 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WeekCart · Free weekly meal plan & grocery list</title>
-    <meta name="description" content="Set a budget, pick what you like to eat, and get a week of dinners plus a shopping list sorted by your ALDI or Kroger store's layout. Free, no account, no subscription.">
+    <meta name="description" content="Set a budget and daily calorie and protein goals, pick a grocery store near you, and get a week of recipes plus a shopping list sorted by the store's layout. Free, no account, no subscription.">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=1">
-    <script src="data-items.js?v=1"></script>
-    <script src="data-recipes.js?v=1"></script>
-    <script src="app.js?v=1"></script>
+    <link rel="stylesheet" href="style.css?v=2">
+    <script src="data-items.js?v=2"></script>
+    <script src="data-recipes.js?v=2"></script>
+    <script src="data-stores.js?v=2"></script>
+    <script src="app.js?v=2"></script>
 </head>
 <body>
     <header class="top">
@@ -27,9 +28,10 @@
     </main>
     <footer class="foot">
         <p>WeekCart is free and doesn't track you. Your choices are saved only in this browser. Prices are estimates unless live Kroger prices are on, and stores vary, so always check the shelf.</p>
-        <p>Not affiliated with ALDI or The Kroger Co.</p>
+        <p>Not affiliated with any grocery store. Nearby stores © OpenStreetMap contributors. Nutrition is approximate.</p>
     </footer>
     <div id="settings" class="overlay" hidden></div>
+    <div id="print-area" class="print-area"></div>
     <div id="toast" class="toast" role="status"></div>
 </body>
 </html>

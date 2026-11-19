@@ -23,12 +23,12 @@ window.WC_RECIPES = [
     { id: 'spaghetti', type: 'dinner', n: 'Spaghetti with Meat Sauce', emoji: '🍝', pro: 'beef', time: 30, tags: ['italian', 'kid', 'comfort'],
       ing: [['spaghetti', 1], ['gbeef', 1], ['marinara', 1], ['onion', 1, 'diced'], ['garlic', 3, 'minced'], ['italseas', 1], ['parm', 0.5]],
       steps: ['Boil the spaghetti in salted water until tender. Drain.', 'Meanwhile, brown the beef with the onion. Drain the fat, add the garlic and cook 1 minute.', 'Pour in the marinara and Italian seasoning. Simmer 10 minutes.', 'Serve the sauce over the spaghetti with parmesan.'] },
-    { id: 'bakedziti', type: 'dinner', n: 'Baked Ziti with Sausage', emoji: '🧀', pro: 'pork', time: 45, tags: ['italian', 'comfort', 'kid'],
+    { id: 'bakedziti', type: 'dinner', serves: 6, n: 'Baked Ziti with Sausage', emoji: '🧀', pro: 'pork', time: 45, tags: ['italian', 'comfort', 'kid'],
       ing: [['penne', 1], ['itsausage', 1, 'casings removed'], ['marinara', 1], ['ricotta', 1], ['mozz', 2], ['parm', 0.25], ['italseas', 1]],
       steps: ['Heat the oven to 375°F. Boil the penne 2 minutes less than the box says. Drain.', 'Brown the sausage, breaking it up. Stir in the marinara and Italian seasoning.', 'Mix the pasta with the sauce and ricotta, then spread in a 9×13 pan.', 'Top with mozzarella and parmesan. Bake 20 minutes until bubbly.'] },
-    { id: 'lasagna', type: 'dinner', n: 'Easy Beef Lasagna', emoji: '🍽️', pro: 'beef', time: 75, tags: ['italian', 'comfort'],
+    { id: 'lasagna', type: 'dinner', serves: 8, n: 'Easy Beef Lasagna', emoji: '🍽️', pro: 'beef', time: 75, tags: ['italian', 'comfort'],
       ing: [['lasagna', 0.75], ['gbeef', 1], ['marinara', 2], ['ricotta', 2], ['mozz', 4], ['parm', 0.5], ['eggs', 1], ['italseas', 2]],
-      steps: ['Heat the oven to 375°F. Boil the noodles until just tender and lay them flat.', 'Brown the beef, drain it, and stir in the marinara.', 'Mix ricotta, egg, half the parmesan and the Italian seasoning.', 'Layer in a 9×13 pan: sauce, noodles, ricotta mix, mozzarella. Repeat twice, ending with sauce and cheese.', 'Cover with foil and bake 25 minutes, uncover and bake 15 more. Rest 10 minutes before cutting. Leftovers make great lunches.'] },
+      steps: ['Heat the oven to 375°F. Boil the noodles until just tender and lay them flat.', 'Brown the beef, drain it, and stir in the marinara.', 'Mix ricotta, egg, half the parmesan and the Italian seasoning.', 'Layer in a 9×13 pan: sauce, noodles, ricotta mix, mozzarella. Repeat twice, ending with sauce and cheese.', 'Cover with foil and bake 25 minutes, uncover and bake 15 more. Rest 10 minutes before cutting.'] },
     { id: 'pestopasta', type: 'dinner', n: 'Pesto Chicken Pasta', emoji: '🌿', pro: 'chicken', time: 25, tags: ['italian', 'quick'],
       ing: [['penne', 1], ['chkbreast', 1, 'cubed'], ['pesto', 0.75], ['tomato', 3, 'diced'], ['spinach', 3], ['parm', 0.5], ['oil', 1]],
       steps: ['Boil the pasta. Save 1/2 cup of the pasta water before draining.', 'Cook the chicken in oil with salt and pepper until golden, about 7 minutes.', 'Toss pasta, chicken, pesto, spinach and tomatoes in the pot, adding pasta water to loosen it up.', 'Top with parmesan.'] },
@@ -86,13 +86,13 @@ window.WC_RECIPES = [
     { id: 'beefstew', type: 'dinner', n: 'Slow Cooker Beef Stew', emoji: '🥘', pro: 'beef', time: 480, tags: ['slowcooker', 'comfort', 'soup'],
       ing: [['stewbeef', 1.5], ['potato', 1.5], ['carrot', 4], ['onion', 1], ['broth', 3], ['tompaste', 1], ['flour', 0.25], ['italseas', 1], ['bread', 4]],
       steps: ['Toss the beef with flour, salt and pepper.', 'Put potatoes, carrots and onion (all chunked) in the slow cooker with the beef on top.', 'Whisk the broth with tomato paste and Italian seasoning and pour it over.', 'Cook on LOW 8 hours or HIGH 5 hours. Serve with bread for dipping.'] },
-    { id: 'pulledpork', type: 'dinner', n: 'Slow Cooker Pulled Pork Sandwiches', emoji: '🐷', pro: 'pork', time: 480, tags: ['slowcooker', 'kid', 'comfort'],
+    { id: 'pulledpork', type: 'dinner', serves: 8, n: 'Slow Cooker Pulled Pork Sandwiches', emoji: '🐷', pro: 'pork', time: 480, tags: ['slowcooker', 'kid', 'comfort'],
       ing: [['porkshould', 3], ['bbq', 1.5], ['onion', 1], ['brownsugar', 0.25], ['paprika', 2], ['buns', 8], ['slaw', 3], ['mayo', 3], ['vinegar', 1]],
-      steps: ['Rub the pork with brown sugar, paprika, salt and pepper.', 'Put the sliced onion in the slow cooker, add the pork and 1/2 cup water.', 'Cook on LOW 8 hours, until it shreds easily. Shred and toss with BBQ sauce.', 'Mix the slaw with mayo and vinegar. Pile pork and slaw onto buns. (Makes extra for lunches!)'] },
+      steps: ['Rub the pork with brown sugar, paprika, salt and pepper.', 'Put the sliced onion in the slow cooker, add the pork and 1/2 cup water.', 'Cook on LOW 8 hours, until it shreds easily. Shred and toss with BBQ sauce.', 'Mix the slaw with mayo and vinegar. Pile pork and slaw onto buns.'] },
     { id: 'salsachicken', type: 'dinner', n: 'Slow Cooker Salsa Chicken', emoji: '🍅', pro: 'chicken', time: 360, tags: ['slowcooker', 'mexican', 'healthy'],
       ing: [['chkbreast', 2], ['salsa', 2], ['taco', 1], ['blackbean', 1], ['rice', 1.5], ['mexcheese', 1], ['sourcream', 0.5]],
       steps: ['Put the chicken in the slow cooker. Sprinkle with taco seasoning and pour the salsa over.', 'Cook on LOW 6 hours or HIGH 3 hours.', 'Shred the chicken and stir in the drained black beans.', 'Serve over rice with cheese and sour cream.'] },
-    { id: 'chkpotpie', type: 'dinner', n: 'Chicken & Biscuit-Style Casserole', emoji: '🥧', pro: 'chicken', time: 45, tags: ['comfort', 'kid'],
+    { id: 'chkpotpie', type: 'dinner', serves: 6, n: 'Chicken & Biscuit-Style Casserole', emoji: '🥧', pro: 'chicken', time: 45, tags: ['comfort', 'kid'],
       ing: [['rotis', 1], ['soupcream', 2], ['frzmixed', 16], ['milk', 1.5], ['pancake', 1.5], ['butter', 3], ['cheddar', 1]],
       steps: ['Heat the oven to 400°F. Shred the chicken.', 'Mix the chicken, soup, frozen veggies and 1/2 cup milk, then spread in a baking dish.', 'Stir the pancake mix, 1 cup milk, melted butter and cheese into a thick batter.', 'Spoon the batter over the top and bake 25 minutes until golden.'] },
     { id: 'porkchops', type: 'dinner', n: 'Skillet Pork Chops & Green Beans', emoji: '🍖', pro: 'pork', time: 30, tags: ['quick', 'healthy'],
@@ -107,7 +107,7 @@ window.WC_RECIPES = [
     { id: 'sloppyjoe', type: 'dinner', n: 'Sloppy Joes', emoji: '🥪', pro: 'beef', time: 25, tags: ['quick', 'kid', 'comfort'],
       ing: [['gbeef', 1], ['buns', 4], ['ketchup', 6], ['brownsugar', 0.1], ['mustard', 1], ['onion', 1], ['bellpep', 1], ['babycarrot', 8, 'on the side']],
       steps: ['Brown the beef with diced onion and pepper. Drain.', 'Stir in ketchup, brown sugar, mustard and 1/4 cup water.', 'Simmer 10 minutes until thick.', 'Spoon onto buns and serve with baby carrots.'] },
-    { id: 'macncheese', type: 'dinner', n: 'Baked Mac & Cheese with Broccoli', emoji: '🧀', pro: 'veg', time: 40, tags: ['comfort', 'kid'],
+    { id: 'macncheese', type: 'dinner', serves: 6, n: 'Baked Mac & Cheese with Broccoli', emoji: '🧀', pro: 'veg', time: 40, tags: ['comfort', 'kid'],
       ing: [['elbow', 1], ['cheddar', 3], ['milk', 2.5], ['butter', 4], ['flour', 0.25], ['frzbroc', 12], ['breadcrumb', 0.5]],
       steps: ['Heat the oven to 375°F. Boil the macaroni 2 minutes short, adding the broccoli in the last 2 minutes. Drain.', 'Melt butter, whisk in flour for 1 minute, then slowly whisk in milk. Simmer until thick.', 'Stir in 2½ cups of cheese until smooth, then the pasta and broccoli.', 'Top with the rest of the cheese and breadcrumbs. Bake 20 minutes.'] },
     { id: 'veggiefritata', type: 'dinner', n: 'Potato & Veggie Frittata', emoji: '🍳', pro: 'veg', time: 35, tags: ['healthy', 'onepot'],
@@ -170,8 +170,19 @@ window.WC_RECIPES = [
       steps: ['Mix drained tuna with mayo and diced celery.', 'Make sandwiches and serve with cucumber slices.'] },
     { id: 'l_hummus', type: 'lunch', n: 'Hummus Snack Boxes', emoji: '🥕', pro: 'veg', time: 10, tags: ['healthy', 'quick'],
       ing: [['hummus', 6], ['babycarrot', 6], ['cucumber', 1], ['tortilla', 2, 'cut into wedges'], ['slcheese', 2], ['apple', 2]],
-      steps: ['Cut the cucumber, cheese and tortillas into dippable pieces.', 'Pack with hummus, carrots and apple slices.'] }
+      steps: ['Cut the cucumber, cheese and tortillas into dippable pieces.', 'Pack with hummus, carrots and apple slices.'] },
+
+    // ================= SNACKS (amounts = ONE serving for one person; used to help reach daily goals) =================
+    { id: 's_yogurt', type: 'snack', n: 'Greek yogurt & honey', emoji: '🍯', pro: 'veg', time: 2, tags: [], ing: [['yogurt', 0.75], ['honey', 0.5]], steps: ['Spoon yogurt into a bowl and drizzle with honey.'] },
+    { id: 's_eggs', type: 'snack', n: '2 hard-boiled eggs', emoji: '🥚', pro: 'veg', time: 12, tags: [], ing: [['eggs', 2]], steps: ['Boil a batch for the week: 11 minutes in boiling water, then into ice water. Keep in the fridge.'] },
+    { id: 's_turkey', type: 'snack', n: 'Turkey & cheese roll-ups', emoji: '🧀', pro: 'turkey', time: 3, tags: [], ing: [['delitur', 3], ['slcheese', 1]], steps: ['Roll turkey slices around a slice of cheese.'] },
+    { id: 's_pbapple', type: 'snack', n: 'Apple & peanut butter', emoji: '🍎', pro: 'veg', time: 2, tags: [], ing: [['apple', 1], ['pb', 2]], steps: ['Slice the apple and dip it in peanut butter.'] },
+    { id: 's_granola', type: 'snack', n: 'Yogurt granola cup', emoji: '🥣', pro: 'veg', time: 2, tags: [], ing: [['yogurt', 0.5], ['granola', 0.5]], steps: ['Top yogurt with granola.'] },
+    { id: 's_hummus', type: 'snack', n: 'Hummus & carrots', emoji: '🥕', pro: 'veg', time: 2, tags: [], ing: [['hummus', 2], ['babycarrot', 3]], steps: ['Dip carrots in hummus.'] },
+    { id: 's_banana', type: 'snack', n: 'Banana & peanut butter', emoji: '🍌', pro: 'veg', time: 1, tags: [], ing: [['banana', 1], ['pb', 1]], steps: ['Slice the banana and add a spoonful of peanut butter.'] },
+    { id: 's_milk', type: 'snack', n: 'Glass of milk & toast', emoji: '🥛', pro: 'veg', time: 3, tags: [], ing: [['milk', 1], ['bread', 1], ['butter', 0.5]], steps: ['Toast and butter the bread and pour a glass of milk.'] }
 ];
+
 
 window.WC_CATEGORIES = {
     protein: [
@@ -182,7 +193,8 @@ window.WC_CATEGORIES = {
         { id: 'mexican', name: 'Mexican', icon: '🌮' }, { id: 'italian', name: 'Italian', icon: '🍝' }, { id: 'asian', name: 'Asian', icon: '🥢' },
         { id: 'comfort', name: 'Comfort food', icon: '🍲' }, { id: 'healthy', name: 'Healthy', icon: '🥗' }, { id: 'kid', name: 'Kid-friendly', icon: '🧒' },
         { id: 'quick', name: '30 min or less', icon: '⏱️' }, { id: 'slowcooker', name: 'Slow cooker', icon: '🫕' }, { id: 'sheetpan', name: 'Sheet pan', icon: '🍳' },
-        { id: 'onepot', name: 'One pot', icon: '🥘' }, { id: 'soup', name: 'Soups & chili', icon: '🥣' }
+        { id: 'onepot', name: 'One pot', icon: '🥘' }, { id: 'soup', name: 'Soups & chili', icon: '🥣' },
+        { id: 'protein', name: 'High protein (35g+)', icon: '💪' }, { id: 'light', name: 'Under 600 cal', icon: '🪶' }
     ],
     avoid: [
         { id: 'dairy', name: 'Dairy', icon: '🥛' }, { id: 'gluten', name: 'Gluten', icon: '🌾' }, { id: 'nuts', name: 'Nuts', icon: '🥜' },
