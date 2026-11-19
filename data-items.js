@@ -1,6 +1,7 @@
 // ==========================================
 // WeekCart — grocery catalog
-// Prices are ESTIMATES of typical store-brand prices (late 2026), used when live prices aren't available.
+// Prices are ESTIMATES of typical store-brand prices at U.S.-average price levels (late 2026), spot-checked against
+// BLS Average Price Data. The app adjusts them for your state (data-region.js) and chain (data-stores.js).
 //   p  = how many recipe-units come in one package     u  = recipe unit (count items use a noun, with pl = plural)
 //   a  = typical ALDI price per package                k  = typical Kroger price per package
 //   pk = package description shown on the list         t  = search term for live Kroger prices
@@ -58,7 +59,7 @@ window.WC_ITEMS = [
     { id: 'lemon', n: 'Lemons', s: 'produce', p: 6, u: 'lemon', pl: 'lemons', a: 2.99, k: 3.99, pk: '2 lb bag', t: 'lemons bag', oz: 5, must: 'lemon', not: 'juice|pepper|soda|water|cake|tea' },
     { id: 'banana', n: 'Bananas', s: 'produce', p: 6, u: 'banana', pl: 'bananas', a: 1.39, k: 1.79, pk: 'bunch (~2.5 lb)', t: 'bananas', oz: 6.5, must: 'banana', not: 'bread|chip|pepper|muffin|dried' },
     { id: 'apple', n: 'Apples', s: 'produce', p: 8, u: 'apple', pl: 'apples', a: 3.49, k: 4.49, pk: '3 lb bag', t: 'gala apples 3 lb', oz: 6, must: 'apple', not: 'juice|sauce|chip|pie|cider|vinegar|dried' },
-    { id: 'berries', n: 'Strawberries', s: 'produce', p: 1, u: 'lb', a: 2.49, k: 3.49, pk: '1 lb', t: 'strawberries 1 lb', oz: 16, must: 'strawberr', not: 'jam|preserve|frozen|yogurt|dried' },
+    { id: 'berries', n: 'Strawberries', s: 'produce', p: 1, u: 'lb', a: 2.79, k: 3.79, pk: '1 lb', t: 'strawberries 1 lb', oz: 16, must: 'strawberr', not: 'jam|preserve|frozen|yogurt|dried' },
     { id: 'spinach', n: 'Baby spinach', s: 'produce', p: 6, u: 'cup', pl: 'cups', a: 1.99, k: 2.99, pk: '6 oz bag', t: 'baby spinach', oz: 1, must: 'spinach', not: 'dip|frozen|wrap' },
     { id: 'zucchini', n: 'Zucchini', s: 'produce', p: 1, u: 'zucchini', pl: 'zucchini', a: 0.89, k: 1.19, pk: 'each', t: 'zucchini', ct: 1, must: 'zucchini', not: 'noodle|spiral|bread' },
     { id: 'mushroom', n: 'White mushrooms', s: 'produce', p: 8, u: 'oz', a: 1.79, k: 2.49, pk: '8 oz', t: 'sliced white mushrooms 8 oz', oz: 1, must: 'mushroom', not: 'soup|can|jar|portobello' },
@@ -78,7 +79,7 @@ window.WC_ITEMS = [
     { id: 'delitur', n: 'Sliced deli turkey', s: 'deli', p: 9, u: 'oz', a: 2.99, k: 3.99, pk: '9 oz pack', t: 'oven roasted turkey breast lunch meat', oz: 1, must: 'turkey', not: 'ground|bacon|sausage|stick|burger|frozen|whole' },
     { id: 'hummus', n: 'Hummus', s: 'deli', p: 10, u: 'oz', a: 2.49, k: 3.29, pk: '10 oz tub', t: 'classic hummus 10 oz', oz: 1, must: 'hummus', not: 'chip|cracker' },
     // ---------- meat & seafood ----------
-    { id: 'chkbreast', n: 'Boneless chicken breasts', s: 'meat', p: 3, u: 'lb', a: 8.97, k: 10.47, pk: '~3 lb family pack', t: 'boneless skinless chicken breasts', oz: 16, must: 'chicken breast', not: 'breaded|nugget|tender|strip|canned|cooked|grilled|fried|frozen|deli|lunch' },
+    { id: 'chkbreast', n: 'Boneless chicken breasts', s: 'meat', p: 3, u: 'lb', a: 9.57, k: 11.07, pk: '~3 lb family pack', t: 'boneless skinless chicken breasts', oz: 16, must: 'chicken breast', not: 'breaded|nugget|tender|strip|canned|cooked|grilled|fried|frozen|deli|lunch' },
     { id: 'chkthigh', n: 'Boneless chicken thighs', s: 'meat', p: 2.5, u: 'lb', a: 7.49, k: 8.99, pk: '~2.5 lb pack', t: 'boneless skinless chicken thighs', oz: 16, must: 'thigh', not: 'frozen|cooked|breaded' },
     { id: 'gbeef', n: 'Ground beef 80/20', s: 'meat', p: 1, u: 'lb', a: 5.79, k: 6.49, pk: '1 lb', t: '80/20 ground beef 1 lb', oz: 16, must: 'ground beef|ground chuck', not: 'frozen|patties|patty|lean 9|96|93', alg: ['beef'] },
     { id: 'gturkey', n: 'Ground turkey', s: 'meat', p: 1, u: 'lb', a: 3.49, k: 4.29, pk: '1 lb', t: 'ground turkey 1 lb', oz: 16, must: 'ground turkey', not: 'frozen|patties|burger|sausage' },
@@ -89,18 +90,18 @@ window.WC_ITEMS = [
     { id: 'smsausage', n: 'Smoked sausage', s: 'meat', p: 13, u: 'oz', a: 3.29, k: 3.99, pk: '13–14 oz rope', t: 'smoked sausage rope 14 oz', oz: 1, must: 'smoked sausage', not: 'turkey|cheese|link|stick|bite', alg: ['pork'] },
     { id: 'bacon', n: 'Bacon', s: 'meat', p: 12, u: 'slice', pl: 'slices', a: 4.99, k: 5.99, pk: '12 oz pack', t: 'hickory smoked bacon 12 oz', ct: 12, must: 'bacon', not: 'bits|turkey|cooked|precooked|bacon ranch|pieces|canadian', alg: ['pork'] },
     // ---------- dairy & eggs ----------
-    { id: 'eggs', n: 'Large eggs', s: 'dairy', p: 12, u: 'egg', pl: 'eggs', a: 2.79, k: 3.29, pk: 'dozen', t: 'large white eggs 12 count', ct: 1, must: 'egg', not: 'nog|noodle|substitute|beaters|liquid|white|hard|bites|roll', alg: ['egg'] },
-    { id: 'milk', n: 'Milk (2%)', s: 'dairy', p: 16, u: 'cup', pl: 'cups', a: 2.89, k: 3.29, pk: '1 gallon', t: '2% reduced fat milk gallon', oz: 8, must: 'milk', not: 'chocolate|almond|oat|soy|coconut|lactose|half|evaporated|condensed|powder', alg: ['dairy'] },
+    { id: 'eggs', n: 'Large eggs', s: 'dairy', p: 12, u: 'egg', pl: 'eggs', a: 1.95, k: 2.39, pk: 'dozen', t: 'large white eggs 12 count', ct: 1, must: 'egg', not: 'nog|noodle|substitute|beaters|liquid|white|hard|bites|roll', alg: ['egg'] },
+    { id: 'milk', n: 'Milk (2%)', s: 'dairy', p: 16, u: 'cup', pl: 'cups', a: 2.89, k: 3.49, pk: '1 gallon', t: '2% reduced fat milk gallon', oz: 8, must: 'milk', not: 'chocolate|almond|oat|soy|coconut|lactose|half|evaporated|condensed|powder', alg: ['dairy'] },
     { id: 'butter', n: 'Butter', s: 'dairy', p: 32, u: 'tbsp', a: 3.79, k: 4.49, pk: '1 lb (4 sticks)', t: 'salted butter 4 sticks', oz: 0.5, must: 'butter', not: 'peanut|almond|apple|cookie|popcorn|spread|garlic|milk|cracker', alg: ['dairy'] },
-    { id: 'cheddar', n: 'Shredded cheddar', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.19, k: 2.49, pk: '8 oz bag', t: 'shredded sharp cheddar cheese 8 oz', oz: 4, must: 'cheddar', not: 'sauce|cracker|chip|slice|block|soup|mac', alg: ['dairy'] },
-    { id: 'mozz', n: 'Shredded mozzarella', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.19, k: 2.49, pk: '8 oz bag', t: 'shredded mozzarella cheese 8 oz', oz: 4, must: 'mozzarella', not: 'stick|string|ball|fresh|pearl|slice', alg: ['dairy'] },
-    { id: 'mexcheese', n: 'Shredded Mexican blend', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.19, k: 2.49, pk: '8 oz bag', t: 'shredded mexican style four cheese blend 8 oz', oz: 4, must: 'mexican', not: 'dip|sauce|rice|seasoning', alg: ['dairy'] },
+    { id: 'cheddar', n: 'Shredded cheddar', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.29, k: 2.79, pk: '8 oz bag', t: 'shredded sharp cheddar cheese 8 oz', oz: 4, must: 'cheddar', not: 'sauce|cracker|chip|slice|block|soup|mac', alg: ['dairy'] },
+    { id: 'mozz', n: 'Shredded mozzarella', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.29, k: 2.79, pk: '8 oz bag', t: 'shredded mozzarella cheese 8 oz', oz: 4, must: 'mozzarella', not: 'stick|string|ball|fresh|pearl|slice', alg: ['dairy'] },
+    { id: 'mexcheese', n: 'Shredded Mexican blend', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.29, k: 2.79, pk: '8 oz bag', t: 'shredded mexican style four cheese blend 8 oz', oz: 4, must: 'mexican', not: 'dip|sauce|rice|seasoning', alg: ['dairy'] },
     { id: 'parm', n: 'Grated parmesan', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.99, k: 3.79, pk: '8 oz shaker', t: 'grated parmesan cheese 8 oz', oz: 4, must: 'parmesan', not: 'crisps|cracker|dressing|sauce|chicken', alg: ['dairy'] },
     { id: 'sourcream', n: 'Sour cream', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 1.69, k: 1.99, pk: '16 oz tub', t: 'sour cream 16 oz', oz: 8, must: 'sour cream', not: 'onion|dip|chip', alg: ['dairy'] },
     { id: 'creamch', n: 'Cream cheese', s: 'dairy', p: 8, u: 'oz', a: 1.59, k: 1.99, pk: '8 oz brick', t: 'cream cheese 8 oz brick', oz: 1, must: 'cream cheese', not: 'spread|whipped|frosting|bagel|strawberry|chive', alg: ['dairy'] },
     { id: 'yogurt', n: 'Plain Greek yogurt', s: 'dairy', p: 4, u: 'cup', pl: 'cups', a: 3.49, k: 4.29, pk: '32 oz tub', t: 'plain nonfat greek yogurt 32 oz', oz: 8, must: 'greek', not: 'vanilla|strawberry|honey|blueberry|bar|dip|dressing|frozen', alg: ['dairy'] },
     { id: 'cream', n: 'Heavy cream', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 3.29, k: 3.99, pk: '1 pint', t: 'heavy whipping cream 16 oz', oz: 8, must: 'cream', not: 'sour|cheese|ice|coffee|creamer|whipped|half', alg: ['dairy'] },
-    { id: 'slcheese', n: 'Sliced cheddar', s: 'dairy', p: 10, u: 'slice', pl: 'slices', a: 2.29, k: 2.79, pk: '8 oz (10 slices)', t: 'sliced sharp cheddar cheese', ct: 10, must: 'slice', not: 'shred|block|cracker', alg: ['dairy'] },
+    { id: 'slcheese', n: 'Sliced cheddar', s: 'dairy', p: 10, u: 'slice', pl: 'slices', a: 2.49, k: 2.99, pk: '8 oz (10 slices)', t: 'sliced sharp cheddar cheese', ct: 10, must: 'slice', not: 'shred|block|cracker', alg: ['dairy'] },
     { id: 'ricotta', n: 'Ricotta', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.49, k: 2.99, pk: '15 oz tub', t: 'whole milk ricotta cheese 15 oz', oz: 7.5, must: 'ricotta', alg: ['dairy'] },
     // ---------- breakfast ----------
     { id: 'oats', n: 'Old-fashioned oats', s: 'breakfast', p: 15, u: 'cup', pl: 'cups', a: 3.29, k: 3.99, pk: '42 oz canister', t: 'old fashioned oats 42 oz', oz: 2.8, must: 'oat', not: 'bar|milk|cookie|instant|cereal|flour|granola' },
@@ -202,7 +203,23 @@ window.WC_ITEMS = [
     { id: 'chips', n: 'Tortilla chips', s: 'intl', p: 13, u: 'oz', a: 2.19, k: 2.99, pk: '13 oz bag', t: 'restaurant style tortilla chips 13 oz', oz: 1, must: 'tortilla chip', not: 'scoop|lime|nacho cheese|dip|strip' },
     { id: 'frzwaffle', n: 'Frozen waffles', s: 'frozen', p: 10, u: 'waffle', pl: 'waffles', a: 1.69, k: 2.49, pk: '10-pack', t: 'frozen homestyle waffles 10 count', ct: 1, must: 'waffle', not: 'fries|cone|syrup|chicken|mix', alg: ['gluten', 'egg', 'dairy'] },
     { id: 'pierogi', n: 'Frozen potato pierogies', s: 'frozen', p: 12, u: 'pierogi', pl: 'pierogies', a: 2.29, k: 2.99, pk: '16 oz box (12)', t: 'frozen potato cheddar pierogies 16 oz', ct: 1, must: 'pierog', alg: ['gluten', 'dairy', 'egg'] },
-    { id: 'frzspinach', n: 'Frozen chopped spinach', s: 'frozen', p: 10, u: 'oz', a: 0.99, k: 1.29, pk: '10 oz box', t: 'frozen chopped spinach 10 oz', oz: 1, must: 'spinach', not: 'dip|artichoke|souffle|creamed|fresh' }
+    { id: 'frzspinach', n: 'Frozen chopped spinach', s: 'frozen', p: 10, u: 'oz', a: 0.99, k: 1.29, pk: '10 oz box', t: 'frozen chopped spinach 10 oz', oz: 1, must: 'spinach', not: 'dip|artichoke|souffle|creamed|fresh' },
+    // ---------- added with recipe pack 4 ----------
+    { id: 'cauliflower', n: 'Cauliflower', s: 'produce', p: 1, u: 'head', pl: 'heads', a: 2.49, k: 2.99, pk: 'each', t: 'cauliflower', ct: 1, must: 'cauliflower', not: 'rice|frozen|pizza|mash|crust|floret' },
+    { id: 'kale', n: 'Chopped kale', s: 'produce', p: 10, u: 'cup', pl: 'cups', a: 1.99, k: 2.99, pk: '10 oz bag', t: 'chopped kale 10 oz', oz: 1, must: 'kale', not: 'chip|salad kit|caesar' },
+    { id: 'ginger', n: 'Fresh ginger', s: 'produce', p: 6, u: 'inch', pl: 'inches', a: 0.79, k: 0.99, pk: 'small knob', t: 'fresh ginger root', oz: 0.6, must: 'ginger', not: 'ale|ground|paste|candied|snap|tea|beer' },
+    { id: 'frenchbread', n: 'French bread', s: 'bakery', p: 1, u: 'loaf', pl: 'loaves', a: 1.69, k: 2.29, pk: '16 oz loaf', t: 'french bread loaf', ct: 1, must: 'french bread|baguette', not: 'pizza|frozen|toast|crouton', alg: ['gluten'] },
+    { id: 'tortellini', n: 'Refrigerated cheese tortellini', s: 'dairy', p: 20, u: 'oz', a: 3.99, k: 4.99, pk: '20 oz pack', t: 'three cheese tortellini refrigerated 20 oz', oz: 1, must: 'tortellini', not: 'frozen|soup|salad|meat|sausage|beef|chicken', alg: ['gluten', 'dairy', 'egg'] },
+    { id: 'pizzadough', n: 'Refrigerated pizza dough', s: 'dairy', p: 1, u: 'can', pl: 'cans', a: 1.99, k: 2.99, pk: '13.8 oz can', t: 'refrigerated classic pizza crust dough', oz: 13.8, must: 'pizza', not: 'sauce|frozen|rolls|bites|pepperoni', alg: ['gluten'] },
+    { id: 'chuckroast', n: 'Beef chuck roast', s: 'meat', p: 3, u: 'lb', a: 20.97, k: 23.97, pk: '~3 lb roast', t: 'beef chuck roast', oz: 16, must: 'chuck', not: 'ground|stew|steak|patties|burger', alg: ['beef'] },
+    { id: 'porktender', n: 'Pork tenderloin', s: 'meat', p: 1.25, u: 'lb', a: 4.99, k: 5.99, pk: '~1.25 lb', t: 'pork tenderloin', oz: 16, must: 'tenderloin', not: 'marinated|seasoned|teriyaki|peppercorn|beef|chicken', alg: ['pork'] },
+    { id: 'wholechk', n: 'Whole chicken', s: 'meat', p: 5, u: 'lb', a: 7.45, k: 8.95, pk: '~5 lb bird', t: 'whole fresh chicken', oz: 16, must: 'whole', not: 'rotisserie|cooked|wing|breast|thigh|leg|cornish' },
+    { id: 'quinoa', n: 'Quinoa', s: 'pasta', p: 2, u: 'cup', pl: 'cups', a: 3.29, k: 4.29, pk: '12 oz bag', t: 'white quinoa 12 oz', oz: 6, must: 'quinoa', not: 'pasta|chip|bowl|cereal|frozen' },
+    { id: 'couscous', n: 'Couscous', s: 'pasta', p: 1.6, u: 'cup', pl: 'cups', a: 1.99, k: 2.49, pk: '10 oz box', t: 'plain couscous 10 oz', oz: 6.1, must: 'couscous', not: 'pearl|israeli|parmesan|garlic|mix', alg: ['gluten'] },
+    { id: 'gnocchi', n: 'Potato gnocchi', s: 'pasta', p: 16, u: 'oz', a: 1.99, k: 2.79, pk: '16 oz package', t: 'potato gnocchi 16 oz', oz: 1, must: 'gnocchi', not: 'cauliflower|frozen|sweet potato', alg: ['gluten'] },
+    { id: 'alfredo', n: 'Alfredo sauce', s: 'condiments', p: 1, u: 'jar', pl: 'jars', a: 1.99, k: 2.79, pk: '15 oz jar', t: 'classic alfredo sauce 15 oz jar', oz: 15, must: 'alfredo', not: 'pasta|mix|frozen|chicken', alg: ['dairy'] },
+    { id: 'sesameoil', n: 'Toasted sesame oil', s: 'intl', p: 10, u: 'tbsp', a: 2.49, k: 3.49, pk: '5 oz bottle', t: 'toasted sesame oil 5 oz', oz: 0.5, must: 'sesame oil' },
+    { id: 'cod', n: 'Frozen cod fillets', s: 'frozen', p: 1, u: 'lb', a: 6.49, k: 7.99, pk: '1 lb bag', t: 'frozen wild cod fillets 16 oz', oz: 16, must: '\\bcod\\b', not: 'battered|breaded|fish stick|crusted', alg: ['fish'] }
 ];
 
 // ---------- nutrition: [calories, grams of protein] per recipe unit (approximate, USDA-style averages) ----------
@@ -230,10 +247,13 @@ window.WC_NUTR = {
     cabbage: [225, 11.5], tofu: [330, 35], naan: [260, 9], engmuffin: [130, 5], bagel: [260, 10], deliham: [30, 5], pepperoni: [140, 6],
     drumstick: [560, 60], brksausage: [1300, 60], hotdog: [150, 5], cottage: [220, 25], feta: [400, 21], lentils: [680, 50], cornbread: [900, 15],
     pinto: [350, 21], whitebean: [350, 23], tomsauce: [80, 3], cannedchk: [380, 70], vegbroth: [15, 0.5], gravy: [80, 2], sriracha: [15, 0.3],
-    chips: [140, 2], frzwaffle: [95, 2], pierogi: [77, 2], frzspinach: [7, 0.8]
+    chips: [140, 2], frzwaffle: [95, 2], pierogi: [77, 2], frzspinach: [7, 0.8],
+    cauliflower: [145, 11], kale: [8, 0.7], ginger: [5, 0.1], frenchbread: [1200, 40], tortellini: [85, 4], pizzadough: [960, 32],
+    chuckroast: [1130, 85], porktender: [545, 95], wholechk: [690, 60], quinoa: [625, 24], couscous: [650, 22], gnocchi: [55, 1.3],
+    alfredo: [900, 14], sesameoil: [120, 0], cod: [370, 82]
 };
 // Spoils within about a week (used for the "fresh food used" meter and to steer away from waste).
 // Onions, potatoes, garlic, carrots, cheese, eggs, butter and frozen/canned food keep for weeks, and meat can be frozen.
 window.WC_PERISHABLE = ['romaine', 'spinach', 'cilantro', 'berries', 'banana', 'avocado', 'tomato', 'mushroom', 'greenonion', 'cucumber',
     'zucchini', 'bellpep', 'broccoli', 'slaw', 'celery', 'rotis', 'delitur', 'hummus', 'cream', 'ricotta', 'milk', 'bread', 'buns', 'hoagie', 'sourcream',
-    'deliham', 'cottage', 'naan', 'bagel', 'tofu'];
+    'deliham', 'cottage', 'naan', 'bagel', 'tofu', 'cauliflower', 'kale', 'frenchbread', 'tortellini'];

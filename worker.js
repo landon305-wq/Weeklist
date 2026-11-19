@@ -7,7 +7,8 @@
 //   ALLOWED_ORIGIN        (text)    your site, e.g. https://yourname.github.io  (or * while testing)
 // Optional, for the "Shop on Instacart" button:
 //   INSTACART_API_KEY     (secret)  from the Instacart Developer Platform dashboard
-//   INSTACART_BASE        (text)    https://connect.dev.instacart.tools while testing a development key (leave out for production)
+//   INSTACART_BASE        (text)    the development server address from Instacart's docs while testing a Development key
+//                                   (leave it out for production, which uses https://connect.instacart.com)
 // It only allows read-only store and product lookups, so nobody can use your key for anything else.
 // ==========================================
 let token = null, tokenExpires = 0;

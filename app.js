@@ -11,7 +11,8 @@
     const SECTIONS = window.WC_SECTIONS, LAYOUTS = window.WC_LAYOUTS, CATS = window.WC_CATEGORIES;
     const CHAINS = window.WC_CHAINS, NUTR = window.WC_NUTR, PERISH = new Set(window.WC_PERISHABLE);
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const KEY_SET = 'weekcart_settings_v1', KEY_PLAN = 'weekcart_plan_v2', KEY_LIVE = 'weekcart_live_v1';
+    const KEY_SET = 'weekcart_settings_v1', KEY_PLAN = 'weekcart_plan_v2', KEY_LIVE = 'weekcart_live_v1', KEY_MY = 'weekcart_myprices_v1';
+    const GI = window.WC_GROCERY_INDEX;
 
     const $ = id => document.getElementById(id);
     const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -30,6 +31,8 @@
     let PLAN = recall(KEY_PLAN);
     let LIVE = null;      // live Kroger prices: { locId, date, items: { id: {price, units, name, aisle, aisleNum, url, size} } }
     let NEARBY = null;    // stores found near the ZIP code
+    let MY = recall(KEY_MY) || {};   // prices you typed in from your receipts: { storeId: { itemId: price per package } }
+    let editing = null;              // item whose price is being edited
     let tab = 'list';
 
     const CHAIN_BY_ID = {}; CHAINS.forEach(c => { CHAIN_BY_ID[c.id] = c; });
@@ -52,14 +55,36 @@
     // ---------- prices ----------
     function liveFor(id) { return chain().kroger && LIVE && LIVE.items && LIVE.items[id] ? LIVE.items[id] : null; }
     function packOf(id) { const l = liveFor(id); return l ? l.units : ITEMS[id].p; }
+    // ---------- where you are: ZIP → state → grocery price level ----------
+    function stateOf(zip) {
+        if (!/^\d{3}/.test(zip || '')) return null;
+        const z = parseInt(zip.slice(0, 3), 10);
+        const hit = GI.zip3.find(([a, b]) => z >= a && z <= b);
+        return hit ? hit[2] : null;
+    }
+    function region() {
+        const st = stateOf(S.zip);
+        if (!st || !GI.states[st]) return { st: null, idx: 100, factor: 1 };
+        return { st, name: GI.names[st], idx: GI.states[st], factor: GI.states[st] / 100 };
+    }
+    const myPrice = id => (MY[S.store] && MY[S.store][id] > 0) ? MY[S.store][id] : null;
     let priceCache = {}, priceKey = '';
     function priceOf(id) {
         const l = liveFor(id); if (l) return l.price;
-        if (priceKey !== S.store) { priceCache = {}; priceKey = S.store; }
+        const mine = myPrice(id); if (mine) return mine;
+        const key = S.store + '|' + S.zip;
+        if (priceKey !== key) { priceCache = {}; priceKey = key; }
         if (id in priceCache) return priceCache[id];
-        const c = chain(), base = ITEMS[id][c.base] * c.idx;
-        return (priceCache[id] = c.idx === 1 ? base : Math.max(0.25, Math.round(base * 10) / 10 - 0.01));
+        const c = chain(), base = ITEMS[id][c.base] * c.idx * region().factor;
+        return (priceCache[id] = Math.max(0.25, Math.round(base * 10) / 10 - 0.01));
     }
+    function regionText() {
+        const r = region();
+        if (!r.st) return 'Add your ZIP code to adjust prices for where you live.';
+        const d = Math.round(r.idx - 100);
+        return `adjusted for ${esc(r.name)} (groceries there run ${d === 0 ? 'about average' : Math.abs(d) + '% ' + (d > 0 ? 'above' : 'below') + ' the U.S. average'})`;
+    }
+    const myCount = () => Object.keys(MY[S.store] || {}).length;
     const countsCost = id => !(S.staples && ITEMS[id].staple);
 
     // ---------- recipe filters ----------
@@ -197,7 +222,8 @@
         };
         const wasteW = S.minWaste ? 3 : (S.people <= 2 ? 1.2 : 0.7);   // small households and "minimize leftovers" work harder to finish every package
         const tries = [];
-        for (let t = 0; t < 300; t++) {
+        const nTries = pool.length > 120 ? 160 : pool.length > 60 ? 220 : 300;   // bigger recipe pools need fewer random tries
+        for (let t = 0; t < nTries; t++) {
             const need = {}, plan = { dinners: [], breakfasts: [], lunches: [], snacks: [] };
             const proCount = {};
             const noise = Math.max(3, perMeal * 0.15);
@@ -401,8 +427,9 @@
     function storeHint() {
         const c = chain();
         if (c.kroger && S.worker) return `<span class="live-dot"></span> Live prices and real aisle numbers from ${S.krogerLoc ? esc(S.krogerLoc.name) : 'your nearest ' + esc(c.name) + '-family store'}.`;
-        let t = c.id === 'local' ? 'We don\'t have price data for this store, so it uses typical supermarket prices.' : `Prices are typical ${esc(c.name)} estimates.`;
-        if (c.kroger) t += ' <a href="#" data-act="settings">Turn on live prices & real aisles</a> (free).';
+        let t = (c.id === 'local' ? 'Typical supermarket prices' : `Typical ${esc(c.name)} prices`) + ', ' + regionText() + '.';
+        t += myCount() ? ` Using ${myCount()} price${myCount() === 1 ? '' : 's'} you entered.` : ' Tap any price on your list to enter what you really paid.';
+        t += ' <a href="#" data-act="settings">Ways to get real prices</a>';
         return t;
     }
     function storeBox() {
@@ -490,7 +517,8 @@
         const pct = Math.min(100, L.total / S.budget * 100);
         const servings = mealsOf(PLAN).reduce((s, [rid, m]) => s + m * servesOf(R[rid]), 0);
         const over = L.total > S.budget;
-        const src = chain().kroger && LIVE ? `Live prices from ${S.krogerLoc ? esc(S.krogerLoc.name) : 'Kroger'} · ${esc(LIVE.date)}` : `Estimated ${esc(chain().name === 'Local supermarket' ? 'typical supermarket' : chain().name)} prices`;
+        const src = chain().kroger && LIVE ? `Live prices from ${S.krogerLoc ? esc(S.krogerLoc.name) : 'Kroger'} · ${esc(LIVE.date)}`
+            : `Estimated ${esc(chain().id === 'local' ? 'typical supermarket' : chain().name)} prices ${regionText()}${myCount() ? `, plus ${myCount()} of your own` : ''}`;
         const head = `<div class="card summary">
             <div class="sum-top"><div><div class="kicker">THIS WEEK AT ${esc(storeLabel().toUpperCase())}</div><div class="sum-total ${over ? 'over' : ''}">${money(L.total)}<small> of ${money(S.budget)}</small></div></div>
             <div class="sum-side"><b>${money(L.total / Math.max(1, servings))}</b><span>per serving</span></div></div>
@@ -524,10 +552,13 @@
                 <label class="check"><input type="checkbox" data-got="${r.id}" ${got ? 'checked' : ''} aria-label="Got ${esc(r.it.n)}"><span></span></label>
                 <div class="item-main"><div class="item-name">${r.n > 1 ? `<b>${r.n}×</b> ` : ''}${esc(name)}</div>
                 <div class="item-sub">${esc(pkgText(r))}${r.live && r.live.url ? ` · <a href="${esc(r.live.url)}" target="_blank" rel="noopener">view</a>` : ''} · for ${esc(r.uses.slice(0, 3).join(', '))}${r.uses.length > 3 ? ' +' + (r.uses.length - 3) : ''}</div></div>
-                <div class="item-right"><div class="item-price">${have ? '<s>' + money(r.total) + '</s>' : money(r.total)}</div><button class="have-btn" data-have="${r.id}">${have ? 'Need it' : 'Have it'}</button></div></div>`;
+                <div class="item-right">${editing === r.id
+                    ? `<div class="price-edit"><span>$</span><input type="number" step="0.01" min="0" inputmode="decimal" id="price-in" value="${priceOf(r.id).toFixed(2)}" aria-label="Price per package"><button class="btn small primary-soft" data-saveprice="${r.id}">Save</button></div><small class="pe-hint">per ${esc(r.it.pk)}${myPrice(r.id) ? ` · <a href="#" data-clearprice="${r.id}">use estimate</a>` : ''}</small>`
+                    : `<button class="item-price" data-editprice="${r.id}" title="Tap to enter the price you paid">${have ? '<s>' + money(r.total) + '</s>' : money(r.total)}${myPrice(r.id) ? ' <span class="mine">✓ yours</span>' : r.live ? '' : ' <span class="est">est.</span>'}</button>`}
+                <button class="have-btn" data-have="${r.id}">${have ? 'Need it' : 'Have it'}</button></div></div>`;
         }).join('')}</section>`).join('');
         const pantry = L.pantry.length ? `<details class="card pantry"><summary>🧂 Check your pantry for ${L.pantry.length} basics (not in the total)</summary><ul>${L.pantry.map(r => `<li>${esc(r.it.n)}</li>`).join('')}</ul></details>` : '';
-        return `<p class="hint">Tap an item when it's in your cart. Tap "Have it" for things already at home, and it comes off your total.</p>
+        return `<p class="hint">Tap an item when it's in your cart. Tap "Have it" for things already at home. Tap a price to type in what it really costs at your store. WeekCart remembers it next time.</p>
             <div class="card list">${groups}</div>${pantry}`;
     }
 
@@ -678,6 +709,7 @@
             $('one-hint').hidden = !(S.people === 1 && !S.leftovers);
         }));
         $('f-zip').oninput = e => { S.zip = e.target.value.replace(/\D/g, '').slice(0, 5); e.target.value = S.zip; saveSettings(); };
+        $('f-zip').onchange = () => { $('store-hint').innerHTML = storeHint(); bindSettingsLinks(); if (PLAN) renderResults(); };
         $('f-budget').oninput = e => { const v = parseFloat(e.target.value); if (v > 0) { S.budget = v; saveSettings(); } };
         $('f-breakfast').onchange = e => { S.breakfast = e.target.checked; saveSettings(); };
         $('f-lunch').onchange = e => { S.lunch = e.target.checked; saveSettings(); };
@@ -703,6 +735,17 @@
         document.querySelectorAll('[data-got]').forEach(c => c.onchange = () => { PLAN.got[c.dataset.got] = c.checked; store(KEY_PLAN, PLAN); c.closest('.item').classList.toggle('got', c.checked); });
         document.querySelectorAll('[data-have]').forEach(b => b.onclick = () => { const id = b.dataset.have; PLAN.have[id] = !PLAN.have[id]; store(KEY_PLAN, PLAN); renderResults(); });
         document.querySelectorAll('[data-swap]').forEach(b => b.onclick = () => swapDinner(+b.dataset.swap));
+        document.querySelectorAll('[data-editprice]').forEach(b => b.onclick = () => { editing = b.dataset.editprice; renderResults(); const i = $('price-in'); if (i) { i.focus(); i.select(); } });
+        const saveIt = id => {
+            const v = parseFloat($('price-in').value);
+            MY[S.store] = MY[S.store] || {};
+            if (v > 0) MY[S.store][id] = Math.round(v * 100) / 100; else delete MY[S.store][id];
+            store(KEY_MY, MY); priceKey = ''; editing = null; renderResults(); renderForm();
+            if (v > 0) toast(`Saved: ${ITEMS[id].n} = ${money(v)} at ${chain().name}`);
+        };
+        document.querySelectorAll('[data-saveprice]').forEach(b => b.onclick = () => saveIt(b.dataset.saveprice));
+        const pin = $('price-in'); if (pin) pin.onkeydown = e => { if (e.key === 'Enter') saveIt(editing); if (e.key === 'Escape') { editing = null; renderResults(); } };
+        document.querySelectorAll('[data-clearprice]').forEach(a => a.onclick = e => { e.preventDefault(); const id = a.dataset.clearprice; if (MY[S.store]) delete MY[S.store][id]; store(KEY_MY, MY); priceKey = ''; editing = null; renderResults(); renderForm(); });
         document.querySelectorAll('#results [data-act]').forEach(b => b.onclick = e => {
             const a = b.dataset.act;
             if (a === 'print') printAll();
@@ -855,14 +898,21 @@
     function openSettings() {
         const d = $('settings');
         d.innerHTML = `<div class="dialog card"><button class="close" data-close aria-label="Close">✕</button>
-            <h2>⚡ Live Kroger prices & real aisles</h2>
-            <p>Kroger offers a <b>free</b> official developer API that returns real prices and the actual aisle for each product at your store. It works for every Kroger-family chain: Kroger, Ralphs, Fred Meyer, King Soopers, Fry's, Smith's, QFC, Harris Teeter, Mariano's, Pick 'n Save, Dillons, Food 4 Less and more.</p>
-            <p>Your secret key can't live inside a public website, so it goes in a tiny free "worker" that you own. One-time setup, about 15 minutes:</p>
+            <h2>💲 Getting real prices</h2>
+            <p>Most grocery chains don't share their prices with outside apps, so WeekCart starts with careful estimates: typical prices for your chain, adjusted for your state. There are three ways to swap in real prices:</p>
+            <div class="ways">
+                <div class="way"><b>1. Type in what you paid</b><span>Works at <b>any</b> store, no setup. Tap any price on your list and enter the shelf or receipt price. WeekCart remembers it for that store, so your estimates get more accurate every week.</span></div>
+                <div class="way"><b>2. Send your list to Instacart</b><span>Works with most chains: ALDI, Publix, H-E-B, Tom Thumb, Costco, Safeway and many more. You pick the store on Instacart and see its real prices. Needs a free Instacart developer key (steps below).</span></div>
+                <div class="way"><b>3. Kroger-family direct prices</b><span>Kroger is the only grocer with a free, open price feed. It also gives exact aisle numbers. Works for Kroger, Ralphs, King Soopers, Fry's, Smith's, Fred Meyer, Harris Teeter and other Kroger banners.</span></div>
+            </div>
+            <p class="hint">Options 2 and 3 share one small free "worker" that keeps your keys secret. You only set it up once.</p>
+            <h2>🔧 Set up the worker (for Kroger and/or Instacart)</h2>
+            <p>Secret keys can't live inside a public website, so they go in a tiny free worker that you own. Setup takes about 15 minutes:</p>
             <ol class="setup">
-                <li>Make a free account at <a href="https://developer.kroger.com" target="_blank" rel="noopener">developer.kroger.com</a> and register an app with the <b>Product</b> scope (production environment). Copy its <b>Client ID</b> and <b>Client Secret</b>.</li>
+                <li><i>(For Kroger)</i> Make a free account at <a href="https://developer.kroger.com" target="_blank" rel="noopener">developer.kroger.com</a> and register an app with the <b>Product</b> scope (production environment). Copy its <b>Client ID</b> and <b>Client Secret</b>.</li>
                 <li>Make a free account at <a href="https://dash.cloudflare.com" target="_blank" rel="noopener">Cloudflare</a>. Go to <b>Workers & Pages → Create → Worker</b>, name it (like <code>weekcart</code>) and deploy.</li>
                 <li>Click <b>Edit code</b>, delete what's there, paste in everything from <code>worker.js</code> (it came with this site) and click <b>Deploy</b>.</li>
-                <li>In the worker's <b>Settings → Variables and Secrets</b>, add <code>KROGER_CLIENT_ID</code> and <code>KROGER_CLIENT_SECRET</code> as <b>Secrets</b>. Add <code>ALLOWED_ORIGIN</code> as your site's address (like <code>https://yourname.github.io</code>).</li>
+                <li>In the worker's <b>Settings → Variables and Secrets</b>, add <code>KROGER_CLIENT_ID</code> and <code>KROGER_CLIENT_SECRET</code> as <b>Secrets</b> (skip these if you only want Instacart). Add <code>ALLOWED_ORIGIN</code> as your site's address (like <code>https://yourname.github.io</code>).</li>
                 <li>Paste your worker's address below. It looks like <code>https://weekcart.yourname.workers.dev</code>.</li>
             </ol>
             <label for="s-worker">Worker address</label>
@@ -872,12 +922,12 @@
             ${S.krogerLoc ? `<p class="hint">Current store: <b>${esc(S.krogerLoc.name)}</b> ${esc(S.krogerLoc.addr || '')}</p>` : ''}
             <p class="hint">Kroger allows 10,000 lookups a day for free. WeekCart uses about 100 per store per day and saves the results, so you'll never come close.</p>
             <hr>
-            <h2>🥕 Optional: send your list to Instacart</h2>
-            <p>Instacart's free developer program turns your list into an Instacart page where you pick <b>any store Instacart carries near you</b> (ALDI, Publix, Costco, H-E-B, Tom Thumb and many more), see that store's real prices, and order pickup or delivery. It uses the same worker.</p>
+            <h2>🥕 Turn on Instacart</h2>
+            <p>Your list becomes an Instacart page where you pick <b>any store Instacart carries near you</b>, see its real prices, and can order pickup or delivery (or just use it to check prices).</p>
             <ol class="setup">
                 <li>Apply at <a href="https://www.instacart.com/company/business/developers" target="_blank" rel="noopener">Instacart Developer Platform</a>. Once you're approved, create an API key in the developer dashboard.</li>
                 <li>In your Cloudflare worker's <b>Variables and Secrets</b>, add the key as a secret named <code>INSTACART_API_KEY</code>.</li>
-                <li>While you're testing with a development key, also add a text variable <code>INSTACART_BASE</code> set to <code>https://connect.dev.instacart.tools</code>. Delete it once your production key is approved.</li>
+                <li>While you're testing with a <b>Development</b> key, also add a text variable <code>INSTACART_BASE</code> set to the development server address shown in Instacart's docs or dashboard. Delete it once your <b>Production</b> key is approved (production uses <code>https://connect.instacart.com</code>).</li>
                 <li>Turn on the switch below. A <b>🥕 Shop on Instacart</b> button appears above your list.</li>
             </ol>
             <label class="tog"><input type="checkbox" id="s-insta" ${S.instacart ? 'checked' : ''}><span></span> My worker has an Instacart key</label>
@@ -892,11 +942,14 @@
             S.worker = url; S.krogerLoc = null; saveSettings();
             msg.textContent = 'Testing…';
             try {
+                const ping = await fetch(url.replace(/\/+$/, '') + '/');
+                if (!ping.ok) throw new Error('The worker didn\'t answer.');
+                if (!/^\d{5}$/.test(S.zip)) { msg.innerHTML = '✅ Worker found. Add your ZIP code to test Kroger prices.'; return; }
                 const list = await findStore();
                 S.krogerLoc = Object.assign({ zip: S.zip }, list[0]); if (!chain().kroger) S.store = 'kroger'; saveSettings();
                 msg.innerHTML = `✅ Connected! Nearest store: <b>${esc(list[0].name)}</b>, ${esc(list[0].addr)}`;
                 renderForm();
-            } catch (e) { msg.textContent = '❌ ' + (e.message || 'Could not reach the worker.') + ' Check the address, your ZIP code, and the worker\'s secrets.'; }
+            } catch (e) { msg.textContent = '❌ ' + (e.message || 'Could not reach the worker.') + ' Check the address and the worker\'s secrets. (If you only set up Instacart, that\'s fine: just turn on the Instacart switch below.)'; }
         };
         $('s-insta').onchange = e => { S.instacart = e.target.checked; saveSettings(); if (PLAN) renderResults(); };
         const off = $('s-off'); if (off) off.onclick = () => { S.worker = ''; S.krogerLoc = null; LIVE = null; saveSettings(); d.hidden = true; render(); };

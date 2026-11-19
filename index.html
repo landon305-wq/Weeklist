@@ -8,18 +8,21 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=3">
-    <script src="data-items.js?v=3"></script>
+    <link rel="stylesheet" href="style.css?v=4">
+    <script src="data-items.js?v=5"></script>
     <script src="data-recipes.js?v=3"></script>
     <script src="data-recipes-2.js?v=3"></script>
     <script src="data-recipes-3.js?v=3"></script>
+    <script src="data-recipes-4.js?v=5"></script>
+    <script src="data-recipes-5.js?v=5"></script>
     <script src="data-stores.js?v=3"></script>
-    <script src="app.js?v=3"></script>
+    <script src="data-region.js?v=4"></script>
+    <script src="app.js?v=5"></script>
 </head>
 <body>
     <header class="top">
         <div class="brand"><span class="logo">🛒</span><div><h1>WeekCart</h1><p>Budget meal plans & store-ordered grocery lists. Free forever.</p></div></div>
-        <button class="btn ghost small" data-act="settings" title="Live Kroger prices">⚡ Live prices</button>
+        <button class="btn ghost small" data-act="settings" title="Ways to get real prices">💲 Real prices</button>
     </header>
     <main class="wrap">
         <section class="card plan-form">
@@ -29,7 +32,7 @@
         <section id="results" class="results" aria-live="polite"></section>
     </main>
     <footer class="foot">
-        <p>WeekCart is free and doesn't track you. Your choices are saved only in this browser. Prices are estimates unless live Kroger prices are on, and stores vary, so always check the shelf.</p>
+        <p>WeekCart is free and doesn't track you. Your choices are saved only in this browser. Prices are estimates (typical chain prices adjusted by state using the MERIC/C2ER grocery index) unless you enter your own or use live prices. Always check the shelf.</p>
         <p>Not affiliated with any grocery store. Nearby stores © OpenStreetMap contributors. Nutrition is approximate.</p>
     </footer>
     <div id="settings" class="overlay" hidden></div>
