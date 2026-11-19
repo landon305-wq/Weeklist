@@ -226,3 +226,5 @@ select { width: 100%; padding: 9px 10px; border: 1.5px solid var(--line); border
     .p-recipes .group-h { font-size: 12pt; }
 }
 .tog-t { font-style: normal; } .tog-t small { color: var(--muted); }
+.dialog hr { border: 0; border-top: 1px dashed var(--line); margin: 18px 0; }
+a.btn { text-decoration: none; display: inline-block; }

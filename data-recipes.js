@@ -117,7 +117,7 @@ window.WC_RECIPES = [
       ing: [['bellpep', 4], ['gturkey', 1], ['rice', 0.75], ['dicedtom', 1], ['onion', 1], ['italseas', 1], ['mozz', 1]],
       steps: ['Heat the oven to 375°F and cook the rice.', 'Brown the turkey with onion. Stir in the tomatoes, Italian seasoning and rice.', 'Halve and seed the peppers, fill them, and set them in a baking dish with 1/4 cup water.', 'Cover with foil and bake 30 minutes. Top with mozzarella and bake 5 more.'] },
     { id: 'mushroomrisotto', type: 'dinner', n: 'Creamy Mushroom Rice Skillet', emoji: '🍄', pro: 'veg', time: 35, tags: ['comfort', 'onepot'],
-      ing: [['rice', 1.5], ['mushroom', 16], ['onion', 1], ['garlic', 3], ['broth', 4], ['parm', 0.75], ['butter', 3], ['spinach', 3]],
+      ing: [['rice', 1.5], ['mushroom', 16], ['onion', 1], ['garlic', 3], ['vegbroth', 4], ['parm', 0.75], ['butter', 3], ['spinach', 3]],
       steps: ['Cook the onion and mushrooms in butter until browned, about 8 minutes. Add the garlic.', 'Stir in the rice for 1 minute, then add the broth.', 'Cover and simmer 18 minutes, stirring once or twice.', 'Stir in parmesan and spinach until creamy.'] },
     { id: 'bbqchicken', type: 'dinner', n: 'BBQ Chicken, Corn & Slaw', emoji: '🍗', pro: 'chicken', time: 40, tags: ['kid', 'sheetpan'],
       ing: [['chkthigh', 2], ['bbq', 0.75], ['frzcorn', 12], ['slaw', 3], ['mayo', 3], ['vinegar', 1], ['sugar', 0.05], ['butter', 1]],

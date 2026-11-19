@@ -5,6 +5,9 @@
 //   KROGER_CLIENT_ID      (secret)  from developer.kroger.com
 //   KROGER_CLIENT_SECRET  (secret)  from developer.kroger.com
 //   ALLOWED_ORIGIN        (text)    your site, e.g. https://yourname.github.io  (or * while testing)
+// Optional, for the "Shop on Instacart" button:
+//   INSTACART_API_KEY     (secret)  from the Instacart Developer Platform dashboard
+//   INSTACART_BASE        (text)    https://connect.dev.instacart.tools while testing a development key (leave out for production)
 // It only allows read-only store and product lookups, so nobody can use your key for anything else.
 // ==========================================
 let token = null, tokenExpires = 0;
@@ -31,11 +34,26 @@ export default {
         const origin = request.headers.get('Origin') || '';
         const allowed = (env.ALLOWED_ORIGIN || '*').split(',').map(s => s.trim());
         const allowOrigin = allowed.includes('*') ? '*' : (allowed.includes(origin) ? origin : allowed[0]);
-        const cors = { 'Access-Control-Allow-Origin': allowOrigin, 'Access-Control-Allow-Methods': 'GET, OPTIONS', 'Vary': 'Origin' };
+        const cors = { 'Access-Control-Allow-Origin': allowOrigin, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Vary': 'Origin' };
         if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
+        const url = new URL(request.url);
+        const json = (obj, status) => new Response(JSON.stringify(obj), { status: status || 200, headers: { ...cors, 'Content-Type': 'application/json' } });
+
+        // Instacart: turn a WeekCart list into an Instacart shopping-list page
+        if (url.pathname === '/instacart' && request.method === 'POST') {
+            if (!env.INSTACART_API_KEY) return json({ error: 'No INSTACART_API_KEY set on the worker.' }, 400);
+            const body = await request.text();
+            if (body.length > 100000) return json({ error: 'List too long.' }, 413);
+            const base = (env.INSTACART_BASE || 'https://connect.instacart.com').replace(/\/+$/, '');
+            const res = await fetch(base + '/idp/v1/products/products_link', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + env.INSTACART_API_KEY, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body
+            });
+            return new Response(await res.text(), { status: res.status, headers: { ...cors, 'Content-Type': 'application/json' } });
+        }
         if (request.method !== 'GET') return new Response('Only GET', { status: 405, headers: cors });
 
-        const url = new URL(request.url);
         if (!/^\/(locations|products)$/.test(url.pathname)) {
             return new Response(JSON.stringify({ ok: true, hint: 'Use /locations or /products' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
         }

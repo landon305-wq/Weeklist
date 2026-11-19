@@ -24,7 +24,7 @@
     let S = Object.assign({
         store: 'aldi', storeInfo: null, zip: '', budget: 100, people: 4, dinners: 5, breakfast: false, lunch: false,
         proteins: [], styles: [], avoid: [], staples: true, worker: '', krogerLoc: null,
-        calGoal: '', proGoal: '', snacks: false, leftovers: false
+        calGoal: '', proGoal: '', snacks: false, leftovers: false, minWaste: false, instacart: false
     }, recall(KEY_SET) || {});
     if (!CHAINS.some(c => c.id === S.store)) S.store = 'aldi';
     let PLAN = recall(KEY_PLAN);
@@ -32,7 +32,8 @@
     let NEARBY = null;    // stores found near the ZIP code
     let tab = 'list';
 
-    const chain = () => CHAINS.find(c => c.id === S.store) || CHAINS[CHAINS.length - 1];
+    const CHAIN_BY_ID = {}; CHAINS.forEach(c => { CHAIN_BY_ID[c.id] = c; });
+    const chain = () => CHAIN_BY_ID[S.store] || CHAINS[CHAINS.length - 1];
     const layout = () => LAYOUTS[chain().layout];
     const storeLabel = () => S.storeInfo && S.storeInfo.chain === S.store ? S.storeInfo.name : chain().name;
 
@@ -51,10 +52,13 @@
     // ---------- prices ----------
     function liveFor(id) { return chain().kroger && LIVE && LIVE.items && LIVE.items[id] ? LIVE.items[id] : null; }
     function packOf(id) { const l = liveFor(id); return l ? l.units : ITEMS[id].p; }
+    let priceCache = {}, priceKey = '';
     function priceOf(id) {
         const l = liveFor(id); if (l) return l.price;
+        if (priceKey !== S.store) { priceCache = {}; priceKey = S.store; }
+        if (id in priceCache) return priceCache[id];
         const c = chain(), base = ITEMS[id][c.base] * c.idx;
-        return c.idx === 1 ? base : Math.max(0.25, Math.round(base * 10) / 10 - 0.01);
+        return (priceCache[id] = c.idx === 1 ? base : Math.max(0.25, Math.round(base * 10) / 10 - 0.01));
     }
     const countsCost = id => !(S.staples && ITEMS[id].staple);
 
@@ -191,7 +195,7 @@
             if (g.pro) { const t = g.pro * dinnerShare; p += Math.max(0, t - r.nu.pro) / t * perMeal * 1.1; }
             return p;
         };
-        const wasteW = S.people <= 2 ? 1.2 : 0.7;   // small households: work harder to finish every package
+        const wasteW = S.minWaste ? 3 : (S.people <= 2 ? 1.2 : 0.7);   // small households and "minimize leftovers" work harder to finish every package
         const tries = [];
         for (let t = 0; t < 300; t++) {
             const need = {}, plan = { dinners: [], breakfasts: [], lunches: [], snacks: [] };
@@ -247,19 +251,63 @@
         const under = tries.filter(x => x.cost <= S.budget);
         let best;
         if (under.length) {
-            under.forEach(x => { x.score = x.variety * 2 + Math.random() * 4 - (x.cost / S.budget) * 2 - x.waste / Math.max(20, S.budget) * 8 + x.fit; });
+            under.forEach(x => { x.score = x.variety * 2 + Math.random() * 4 - (x.cost / S.budget) * 2 - x.waste / Math.max(20, S.budget) * (S.minWaste ? 30 : 8) + x.fit; });
             under.sort((a, b) => b.score - a.score);
             best = under[Math.floor(Math.random() * Math.min(4, under.length))];
         } else {
             tries.sort((a, b) => a.cost - b.cost);
             best = tries[0];
         }
+        if (S.minWaste) trimWaste(best.plan);
         best.plan.dinners = orderWeek(best.plan.dinners);
         return Object.assign(best.plan, { created: new Date().toISOString(), notes, have: {}, got: {}, store: S.store, overBudget: best.cost > S.budget });
     }
     function orderWeek(ids) {
         const long = ids.filter(id => R[id].time > 45), short = ids.filter(id => R[id].time <= 45);
         return shuffle(short).concat(long);
+    }
+
+    // ---------- squeeze out leftovers: try swapping each meal for one that wastes less ----------
+    function trimWaste(plan) {
+        const { pool } = dinnerPool();
+        const bPool = sidePool('breakfast'), lPool = sidePool('lunch');
+        const score = p => { const n = needs(p).need; const c = costOfNeed(n, PLAN && PLAN.have); return { waste: wasteOf(n), cost: c }; };
+        let cur = score(plan);
+        const startCost = cur.cost;
+        const limit = Math.max(S.budget, startCost);
+        const slots = [['dinners', pool], ['breakfasts', bPool], ['lunches', lPool]];
+        for (let pass = 0; pass < 4; pass++) {
+            let improved = false;
+            for (const [key, list] of slots) {
+                for (let i = 0; i < plan[key].length; i++) {
+                    let best = null;
+                    for (const r of list) {
+                        if (plan[key].includes(r.id)) continue;
+                        const trial = Object.assign({}, plan, { [key]: plan[key].map((x, j) => j === i ? r.id : x) });
+                        const sc = score(trial);
+                        if (sc.cost > limit) continue;
+                        if (hasGoals()) { const g = goals(), d = dailyNutrition(trial), d0 = dailyNutrition(plan); if (g.pro && d.pro < d0.pro - 8) continue; if (g.cal && Math.abs(d.cal - g.cal) > Math.abs(d0.cal - g.cal) + 150) continue; }
+                        if (sc.waste < cur.waste - 0.25 && (!best || sc.waste < best.sc.waste)) best = { id: r.id, sc };
+                    }
+                    if (best) { plan[key][i] = best.id; cur = best.sc; improved = true; }
+                }
+            }
+            if (!improved) break;
+        }
+        plan.snacks = pickSnacks(plan);
+        return cur;
+    }
+    function minimizeLeftovers() {
+        const before = shoppingList();
+        const w0 = wasteOf(needs(PLAN).need);
+        const keep = JSON.stringify([PLAN.dinners, PLAN.breakfasts, PLAN.lunches]);
+        trimWaste(PLAN);
+        const w1 = wasteOf(needs(PLAN).need);
+        store(KEY_PLAN, PLAN);
+        renderResults();
+        const after = shoppingList();
+        if (JSON.stringify([PLAN.dinners, PLAN.breakfasts, PLAN.lunches]) === keep) toast(`This plan already uses ${after.usedPct}% of its fresh food. Turn on "Minimize leftover food" and make a new plan to go further.`);
+        else toast(`♻️ Swapped meals to waste less: fresh food used ${before.usedPct}% → ${after.usedPct}% (about ${money(Math.max(0, w0 - w1))} less thrown out).`);
     }
 
     // ---------- swapping one dinner ----------
@@ -368,14 +416,19 @@
                 <p class="hint">Store list from OpenStreetMap. ${NEARBY.list.length ? '' : 'Nothing found nearby. Pick a chain below.'}</p>`) : '';
         return `<div class="field">
             <label>Store</label>
-            <div class="store-cur"><span class="store-icon">🏪</span><div><b>${esc(info ? info.name : c.name)}</b><small>${info ? `${info.dist.toFixed(1)} mi · ${esc(info.addr || '')}` : 'Pick a store near you, or a chain'}</small></div></div>
+            <div class="store-cur"><span class="store-icon">🏪</span><div><b>${esc(info ? info.name : c.name)}</b><small>${info ? `${info.dist.toFixed(1)} mi${info.addr ? ' · ' + esc(info.addr) : ''}` : 'Pick a store near you, or a chain'}</small></div></div>
             <div class="row store-row">
                 <button type="button" class="btn small" id="find-stores">📍 Find stores near my ZIP</button>
-                <select id="f-chain" aria-label="Or pick a chain">${CHAINS.map(x => `<option value="${x.id}" ${x.id === S.store ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+                <select id="f-chain" aria-label="Or pick a chain">${chainOptions()}</select>
             </div>
             ${near}
             <p class="hint" id="store-hint">${storeHint()}</p>
         </div>`;
+    }
+    function chainOptions() {
+        const groups = [];
+        CHAINS.forEach(x => { let g = groups.find(gg => gg.name === x.group); if (!g) groups.push(g = { name: x.group, list: [] }); g.list.push(x); });
+        return groups.map(g => `<optgroup label="${esc(g.name)}">${g.list.map(x => `<option value="${x.id}" ${x.id === S.store ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</optgroup>`).join('');
     }
     function renderForm() {
         const lay = layout();
@@ -393,6 +446,7 @@
                 <label class="tog"><input type="checkbox" id="f-breakfast" ${S.breakfast ? 'checked' : ''}><span></span> Add breakfasts for the week</label>
                 <label class="tog"><input type="checkbox" id="f-lunch" ${S.lunch ? 'checked' : ''}><span></span> Add weekday lunches</label>
                 <label class="tog"><input type="checkbox" id="f-leftovers" ${S.leftovers ? 'checked' : ''}><span></span> <i class="tog-t">Cook once, eat twice <small>(double dinners for leftovers)</small></i></label>
+                <label class="tog"><input type="checkbox" id="f-minwaste" ${S.minWaste ? 'checked' : ''}><span></span> <i class="tog-t">♻️ Minimize leftover food <small>(pick meals that finish every package)</small></i></label>
                 <p class="hint" id="one-hint" ${S.people === 1 && !S.leftovers ? '' : 'hidden'}>🙋 Cooking for one? Turn on <b>Cook once, eat twice</b>. Recipes come in family-size packages, so making 2 servings and eating the second for lunch wastes far less.</p>
             </div>
             <div class="field goals">
@@ -455,7 +509,7 @@
         bindResults();
     }
     function tools() {
-        return `<div class="list-tools"><button class="btn small primary-soft" data-act="print">🖨️ Print list & recipes</button><button class="btn small" data-act="copy">📋 Copy list</button><button class="btn small" data-act="regen">🔄 New plan</button></div>`;
+        return `<div class="list-tools"><button class="btn small primary-soft" data-act="print">🖨️ Print list & recipes</button><button class="btn small" data-act="trim">♻️ Minimize leftovers</button><button class="btn small" data-act="copy">📋 Copy list</button>${S.worker && S.instacart ? '<button class="btn small" data-act="instacart">🥕 Shop on Instacart</button>' : ''}<button class="btn small" data-act="regen">🔄 New plan</button></div>`;
     }
     function emptyState() {
         return `<div class="card empty"><div class="empty-art">🥕🧅🥖🧀🍗</div><h2>Your week, planned in one click</h2>
@@ -628,6 +682,7 @@
         $('f-breakfast').onchange = e => { S.breakfast = e.target.checked; saveSettings(); };
         $('f-lunch').onchange = e => { S.lunch = e.target.checked; saveSettings(); };
         $('f-leftovers').onchange = e => { S.leftovers = e.target.checked; saveSettings(); $('one-hint').hidden = !(S.people === 1 && !S.leftovers); };
+        $('f-minwaste').onchange = e => { S.minWaste = e.target.checked; saveSettings(); };
         $('f-snacks').onchange = e => { S.snacks = e.target.checked; saveSettings(); };
         $('f-cal').oninput = e => { S.calGoal = e.target.value; saveSettings(); };
         $('f-pro').oninput = e => { S.proGoal = e.target.value; saveSettings(); };
@@ -652,6 +707,8 @@
             const a = b.dataset.act;
             if (a === 'print') printAll();
             if (a === 'copy') copyList();
+            if (a === 'trim') minimizeLeftovers();
+            if (a === 'instacart') sendToInstacart(b);
             if (a === 'regen') generate();
             if (a === 'settings') { e.preventDefault(); openSettings(); }
         });
@@ -678,6 +735,24 @@
         lines.push('DINNERS: ' + PLAN.dinners.map(id => R[id].n).join(', '));
         const text = lines.join('\n');
         (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('List copied. Paste it into your notes or a text.'), () => toast('Couldn\'t copy. Try Print instead.'));
+    }
+    async function sendToInstacart(btn) {
+        const L = shoppingList();
+        const items = [];
+        L.groups.forEach(g => g.rows.filter(r => !PLAN.have[r.id]).forEach(r => items.push({
+            name: r.it.n.replace(/ \(.+\)$/, ''), display_text: `${r.n > 1 ? r.n + ' × ' : ''}${r.it.n} (${r.it.pk})`,
+            line_item_measurements: [{ quantity: r.n, unit: 'each' }]
+        })));
+        btn.disabled = true; btn.textContent = '🥕 Making your Instacart list…';
+        try {
+            const res = await fetch(S.worker.replace(/\/+$/, '') + '/instacart', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: `WeekCart: ${PLAN.dinners.length} dinners`, line_items: items, landing_page_configuration: { partner_linkback_url: location.href.split('#')[0] } })
+            });
+            const j = await res.json();
+            if (!res.ok || !j.products_link_url) throw new Error(j.error || j.message || ('Instacart said ' + res.status));
+            btn.outerHTML = `<a class="btn small primary-soft" href="${esc(j.products_link_url)}" target="_blank" rel="noopener">🥕 Open your Instacart list ↗</a>`;
+        } catch (e) { btn.disabled = false; btn.textContent = '🥕 Shop on Instacart'; toast('Instacart: ' + (e.message || 'something went wrong')); }
     }
     function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2800); }
 
@@ -795,7 +870,18 @@
             <div class="dialog-btns"><button class="btn primary" id="s-save">Save & test</button>${S.worker ? '<button class="btn ghost" id="s-off">Turn off</button>' : ''}</div>
             <div id="s-msg" class="hint"></div>
             ${S.krogerLoc ? `<p class="hint">Current store: <b>${esc(S.krogerLoc.name)}</b> ${esc(S.krogerLoc.addr || '')}</p>` : ''}
-            <p class="hint">Kroger allows 10,000 lookups a day for free. WeekCart uses about 100 per store per day and saves the results, so you'll never come close.</p></div>`;
+            <p class="hint">Kroger allows 10,000 lookups a day for free. WeekCart uses about 100 per store per day and saves the results, so you'll never come close.</p>
+            <hr>
+            <h2>🥕 Optional: send your list to Instacart</h2>
+            <p>Instacart's free developer program turns your list into an Instacart page where you pick <b>any store Instacart carries near you</b> (ALDI, Publix, Costco, H-E-B, Tom Thumb and many more), see that store's real prices, and order pickup or delivery. It uses the same worker.</p>
+            <ol class="setup">
+                <li>Apply at <a href="https://www.instacart.com/company/business/developers" target="_blank" rel="noopener">Instacart Developer Platform</a>. Once you're approved, create an API key in the developer dashboard.</li>
+                <li>In your Cloudflare worker's <b>Variables and Secrets</b>, add the key as a secret named <code>INSTACART_API_KEY</code>.</li>
+                <li>While you're testing with a development key, also add a text variable <code>INSTACART_BASE</code> set to <code>https://connect.dev.instacart.tools</code>. Delete it once your production key is approved.</li>
+                <li>Turn on the switch below. A <b>🥕 Shop on Instacart</b> button appears above your list.</li>
+            </ol>
+            <label class="tog"><input type="checkbox" id="s-insta" ${S.instacart ? 'checked' : ''}><span></span> My worker has an Instacart key</label>
+            </div>`;
         d.hidden = false;
         d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { d.hidden = true; });
         d.onclick = e => { if (e.target === d) d.hidden = true; };
@@ -807,16 +893,17 @@
             msg.textContent = 'Testing…';
             try {
                 const list = await findStore();
-                S.krogerLoc = Object.assign({ zip: S.zip }, list[0]); S.store = 'kroger'; saveSettings();
+                S.krogerLoc = Object.assign({ zip: S.zip }, list[0]); if (!chain().kroger) S.store = 'kroger'; saveSettings();
                 msg.innerHTML = `✅ Connected! Nearest store: <b>${esc(list[0].name)}</b>, ${esc(list[0].addr)}`;
                 renderForm();
             } catch (e) { msg.textContent = '❌ ' + (e.message || 'Could not reach the worker.') + ' Check the address, your ZIP code, and the worker\'s secrets.'; }
         };
+        $('s-insta').onchange = e => { S.instacart = e.target.checked; saveSettings(); if (PLAN) renderResults(); };
         const off = $('s-off'); if (off) off.onclick = () => { S.worker = ''; S.krogerLoc = null; LIVE = null; saveSettings(); d.hidden = true; render(); };
     }
 
     // hooks for testing
-    window.WC = { buildPlan, shoppingList, dailyNutrition, get S() { return S; }, get PLAN() { return PLAN; }, set PLAN(p) { PLAN = p; }, needs, costOfNeed, parseSize, render, R, ITEMS, chain, findNearby, printAll };
+    window.WC = { trimWaste, minimizeLeftovers, wasteOf, buildPlan, shoppingList, dailyNutrition, get S() { return S; }, get PLAN() { return PLAN; }, set PLAN(p) { PLAN = p; }, needs, costOfNeed, parseSize, render, R, ITEMS, chain, findNearby, printAll };
 
     document.addEventListener('DOMContentLoaded', () => {
         loadLiveCache();

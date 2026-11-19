@@ -176,7 +176,33 @@ window.WC_ITEMS = [
     { id: 'tilapia', n: 'Frozen tilapia fillets', s: 'frozen', p: 1, u: 'lb', a: 4.49, k: 5.49, pk: '1 lb bag', t: 'frozen tilapia fillets 16 oz', oz: 16, must: 'tilapia', not: 'breaded|battered|crusted', alg: ['fish'] },
     { id: 'shrimp', n: 'Frozen raw shrimp', s: 'frozen', p: 1, u: 'lb', a: 6.99, k: 8.99, pk: '1 lb bag', t: 'frozen raw shrimp peeled deveined 16 oz', oz: 16, must: 'shrimp', not: 'breaded|popcorn|cooked|ring|cocktail|tempura|scampi|bowl|fried', alg: ['shellfish'] },
     { id: 'meatballs', n: 'Frozen Italian meatballs', s: 'frozen', p: 28, u: 'meatball', pl: 'meatballs', a: 5.49, k: 6.99, pk: '28 oz bag', t: 'frozen italian style meatballs 28 oz', ct: 1, must: 'meatball', not: 'turkey|chicken|vegetarian|meatless|sub|sauce', alg: ['gluten', 'dairy', 'beef', 'pork', 'egg'] },
-    { id: 'hashbrown', n: 'Frozen shredded hash browns', s: 'frozen', p: 30, u: 'oz', a: 2.29, k: 2.99, pk: '30 oz bag', t: 'frozen shredded hash browns 30 oz', oz: 1, must: 'hash brown', not: 'patties|patty|casserole|bowl|cheesy' }
+    { id: 'hashbrown', n: 'Frozen shredded hash browns', s: 'frozen', p: 30, u: 'oz', a: 2.29, k: 2.99, pk: '30 oz bag', t: 'frozen shredded hash browns 30 oz', oz: 1, must: 'hash brown', not: 'patties|patty|casserole|bowl|cheesy' },
+    // ---------- added with the bigger recipe collection ----------
+    { id: 'cabbage', n: 'Green cabbage', s: 'produce', p: 1, u: 'head', pl: 'heads', a: 1.49, k: 1.99, pk: 'about 2 lb head', t: 'green cabbage', ct: 1, must: 'cabbage', not: 'slaw|red|napa|kimchi|sauerkraut' },
+    { id: 'tofu', n: 'Firm tofu', s: 'produce', p: 1, u: 'block', pl: 'blocks', a: 1.79, k: 2.29, pk: '14 oz block', t: 'extra firm tofu 14 oz', oz: 14, must: 'tofu' },
+    { id: 'naan', n: 'Naan flatbread', s: 'bakery', p: 2, u: 'naan', pl: 'naan', a: 2.99, k: 3.49, pk: '2-pack', t: 'naan flatbread 2 count', ct: 1, must: 'naan', not: 'chip|dipper|mini', alg: ['gluten', 'dairy'] },
+    { id: 'engmuffin', n: 'English muffins', s: 'bakery', p: 6, u: 'English muffin', pl: 'English muffins', a: 1.49, k: 1.99, pk: '6-pack', t: 'english muffins 6 count', ct: 1, must: 'english muffin', not: 'sandwich|pizza|frozen', alg: ['gluten'] },
+    { id: 'bagel', n: 'Bagels', s: 'bakery', p: 6, u: 'bagel', pl: 'bagels', a: 1.99, k: 2.49, pk: '6-pack', t: 'plain bagels 6 count', ct: 1, must: 'bagel', not: 'chip|bite|seasoning|cream cheese|thin|mini', alg: ['gluten'] },
+    { id: 'deliham', n: 'Sliced deli ham', s: 'deli', p: 9, u: 'oz', a: 2.99, k: 3.99, pk: '9 oz pack', t: 'smoked ham lunch meat', oz: 1, must: 'ham', not: 'steak|spiral|hock|shank|whole|turkey|hamburger|graham|shame', alg: ['pork'] },
+    { id: 'pepperoni', n: 'Sliced pepperoni', s: 'deli', p: 6, u: 'oz', a: 2.29, k: 2.99, pk: '6 oz bag', t: 'sliced pepperoni 6 oz', oz: 1, must: 'pepperoni', not: 'pizza|roll|stick|turkey', alg: ['pork', 'beef'] },
+    { id: 'drumstick', n: 'Chicken drumsticks', s: 'meat', p: 3, u: 'lb', a: 4.47, k: 5.97, pk: '~3 lb value pack', t: 'chicken drumsticks', oz: 16, must: 'drumstick', not: 'frozen|cooked|breaded|turkey' },
+    { id: 'brksausage', n: 'Ground breakfast sausage', s: 'meat', p: 1, u: 'lb', a: 2.99, k: 3.99, pk: '1 lb roll', t: 'pork breakfast sausage roll 16 oz', oz: 16, must: 'sausage', not: 'link|patt|turkey|chicken|cooked|smoked|italian|biscuit|gravy', alg: ['pork'] },
+    { id: 'hotdog', n: 'Hot dogs', s: 'meat', p: 8, u: 'hot dog', pl: 'hot dogs', a: 1.99, k: 2.99, pk: '8-pack', t: 'beef franks 8 count', ct: 1, must: 'frank|hot dog|wiener', not: 'bun|chili|corn dog|turkey|chicken', alg: ['beef'] },
+    { id: 'cottage', n: 'Cottage cheese', s: 'dairy', p: 2, u: 'cup', pl: 'cups', a: 2.29, k: 2.79, pk: '16 oz tub', t: 'small curd cottage cheese 16 oz', oz: 8, must: 'cottage', not: 'pineapple|fruit|cup', alg: ['dairy'] },
+    { id: 'feta', n: 'Crumbled feta', s: 'dairy', p: 1, u: 'cup', pl: 'cups', a: 2.49, k: 2.99, pk: '4 oz tub', t: 'crumbled feta cheese 4 oz', oz: 4, must: 'feta', not: 'dressing|dip|spinach|fat free', alg: ['dairy'] },
+    { id: 'lentils', n: 'Dry lentils', s: 'pasta', p: 2.25, u: 'cup', pl: 'cups', a: 1.29, k: 1.69, pk: '1 lb bag', t: 'dry lentils 16 oz bag', oz: 7, must: 'lentil', not: 'soup|chip|pasta|can' },
+    { id: 'cornbread', n: 'Corn muffin mix', s: 'baking', p: 1, u: 'box', pl: 'boxes', a: 0.59, k: 0.79, pk: '8.5 oz box', t: 'corn muffin mix 8.5 oz', oz: 8.5, must: 'corn', not: 'meal|starch|syrup|chip|tortilla|can|kernel', alg: ['gluten', 'dairy'] },
+    { id: 'pinto', n: 'Pinto beans', s: 'canned', p: 1, u: 'can', pl: 'cans', a: 0.75, k: 0.99, pk: '15 oz can', t: 'pinto beans 15 oz can', oz: 15, must: 'pinto', not: 'refried' },
+    { id: 'whitebean', n: 'Great northern beans', s: 'canned', p: 1, u: 'can', pl: 'cans', a: 0.79, k: 0.99, pk: '15 oz can', t: 'great northern beans 15 oz', oz: 15, must: 'northern|cannellini|white bean', not: 'soup|chili' },
+    { id: 'tomsauce', n: 'Tomato sauce', s: 'canned', p: 1, u: 'can', pl: 'cans', a: 0.59, k: 0.79, pk: '15 oz can', t: 'tomato sauce 15 oz can', oz: 15, must: 'tomato sauce', not: 'pasta|pizza|basil|garlic' },
+    { id: 'cannedchk', n: 'Canned chicken breast', s: 'canned', p: 1, u: 'can', pl: 'cans', a: 2.79, k: 3.49, pk: '12.5 oz can', t: 'chunk chicken breast 12.5 oz can', oz: 12.5, must: 'chicken', not: 'soup|broth|noodle|salad kit|dog|cat|stock' },
+    { id: 'vegbroth', n: 'Vegetable broth', s: 'canned', p: 4, u: 'cup', pl: 'cups', a: 1.49, k: 1.99, pk: '32 oz carton', t: 'vegetable broth 32 oz carton', oz: 8, must: 'vegetable broth|vegetable stock', not: 'cube|base|bouillon|soup' },
+    { id: 'gravy', n: 'Brown gravy mix', s: 'condiments', p: 1, u: 'packet', pl: 'packets', a: 0.79, k: 1.09, pk: '0.87 oz packet', t: 'brown gravy mix packet', oz: 0.87, must: 'gravy', not: 'jar|turkey|chicken|sausage|country|biscuit', alg: ['gluten'] },
+    { id: 'sriracha', n: 'Sriracha hot sauce', s: 'intl', p: 34, u: 'tbsp', a: 2.49, k: 3.29, pk: '17 oz bottle', t: 'sriracha hot chili sauce', oz: 0.5, must: 'sriracha', not: 'mayo|chip|seasoning|ketchup' },
+    { id: 'chips', n: 'Tortilla chips', s: 'intl', p: 13, u: 'oz', a: 2.19, k: 2.99, pk: '13 oz bag', t: 'restaurant style tortilla chips 13 oz', oz: 1, must: 'tortilla chip', not: 'scoop|lime|nacho cheese|dip|strip' },
+    { id: 'frzwaffle', n: 'Frozen waffles', s: 'frozen', p: 10, u: 'waffle', pl: 'waffles', a: 1.69, k: 2.49, pk: '10-pack', t: 'frozen homestyle waffles 10 count', ct: 1, must: 'waffle', not: 'fries|cone|syrup|chicken|mix', alg: ['gluten', 'egg', 'dairy'] },
+    { id: 'pierogi', n: 'Frozen potato pierogies', s: 'frozen', p: 12, u: 'pierogi', pl: 'pierogies', a: 2.29, k: 2.99, pk: '16 oz box (12)', t: 'frozen potato cheddar pierogies 16 oz', ct: 1, must: 'pierog', alg: ['gluten', 'dairy', 'egg'] },
+    { id: 'frzspinach', n: 'Frozen chopped spinach', s: 'frozen', p: 10, u: 'oz', a: 0.99, k: 1.29, pk: '10 oz box', t: 'frozen chopped spinach 10 oz', oz: 1, must: 'spinach', not: 'dip|artichoke|souffle|creamed|fresh' }
 ];
 
 // ---------- nutrition: [calories, grams of protein] per recipe unit (approximate, USDA-style averages) ----------
@@ -200,9 +226,14 @@ window.WC_NUTR = {
     oil: [120, 0], flour: [455, 13], sugar: [775, 0], brownsugar: [830, 0], salt: [0, 0], pepper: [6, 0.2], garpow: [10, 0.5], italseas: [5, 0.2],
     chilipow: [8, 0.4], cumin: [8, 0.4], paprika: [6, 0.3], cinnamon: [6, 0.1], cornstarch: [30, 0], ketchup: [20, 0.2], mustard: [10, 0.6], vinegar: [3, 0],
     frzbroc: [9, 0.8], frzmixed: [18, 0.9], frzpeas: [22, 1.5], frzcorn: [24, 0.8], frzstirfry: [10, 0.6], frzgreenbean: [9, 0.5],
-    salmon: [950, 92], tilapia: [435, 90], shrimp: [385, 92], meatballs: [80, 4.5], hashbrown: [20, 0.5]
+    salmon: [950, 92], tilapia: [435, 90], shrimp: [385, 92], meatballs: [80, 4.5], hashbrown: [20, 0.5],
+    cabbage: [225, 11.5], tofu: [330, 35], naan: [260, 9], engmuffin: [130, 5], bagel: [260, 10], deliham: [30, 5], pepperoni: [140, 6],
+    drumstick: [560, 60], brksausage: [1300, 60], hotdog: [150, 5], cottage: [220, 25], feta: [400, 21], lentils: [680, 50], cornbread: [900, 15],
+    pinto: [350, 21], whitebean: [350, 23], tomsauce: [80, 3], cannedchk: [380, 70], vegbroth: [15, 0.5], gravy: [80, 2], sriracha: [15, 0.3],
+    chips: [140, 2], frzwaffle: [95, 2], pierogi: [77, 2], frzspinach: [7, 0.8]
 };
 // Spoils within about a week (used for the "fresh food used" meter and to steer away from waste).
 // Onions, potatoes, garlic, carrots, cheese, eggs, butter and frozen/canned food keep for weeks, and meat can be frozen.
 window.WC_PERISHABLE = ['romaine', 'spinach', 'cilantro', 'berries', 'banana', 'avocado', 'tomato', 'mushroom', 'greenonion', 'cucumber',
-    'zucchini', 'bellpep', 'broccoli', 'slaw', 'celery', 'rotis', 'delitur', 'hummus', 'cream', 'ricotta', 'milk', 'bread', 'buns', 'hoagie', 'sourcream'];
+    'zucchini', 'bellpep', 'broccoli', 'slaw', 'celery', 'rotis', 'delitur', 'hummus', 'cream', 'ricotta', 'milk', 'bread', 'buns', 'hoagie', 'sourcream',
+    'deliham', 'cottage', 'naan', 'bagel', 'tofu'];
