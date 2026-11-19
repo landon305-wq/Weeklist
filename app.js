@@ -5,6 +5,20 @@
 // ingredients between meals so less goes to waste), and sorts the list in the order you walk the store.
 // ==========================================
 (function () {
+    // ---------- safety net: if a data file didn't upload, keep working and say which file is missing ----------
+    const MISSING = [];
+    if (!window.WC_ITEMS || !window.WC_NUTR) { MISSING.push('data-items.js'); window.WC_ITEMS = window.WC_ITEMS || []; window.WC_NUTR = window.WC_NUTR || {}; }
+    if (!window.WC_RECIPES || !window.WC_CATEGORIES) { MISSING.push('data-recipes.js'); window.WC_RECIPES = window.WC_RECIPES || []; window.WC_CATEGORIES = window.WC_CATEGORIES || { protein: [], style: [], avoid: [] }; }
+    if (!window.WC_CHAINS) { MISSING.push('data-stores.js'); window.WC_CHAINS = [{ id: 'aldi', name: 'ALDI', base: 'a', idx: 1, layout: 'aldi', group: 'Stores', match: /aldi/i }, { id: 'kroger', name: 'Kroger', base: 'k', idx: 1, layout: 'standard', group: 'Stores', kroger: true, match: /kroger/i }, { id: 'local', name: 'Local supermarket', base: 'k', idx: 1.05, layout: 'standard', group: 'Stores', match: null }]; }
+    if (!window.WC_GROCERY_INDEX) { MISSING.push('data-region.js'); window.WC_GROCERY_INDEX = { states: {}, names: {}, zip3: [] }; }
+    if (!window.WC_PERISHABLE) window.WC_PERISHABLE = [];
+    window.WC_LAYOUTS = window.WC_LAYOUTS || { aldi: { name: 'Store', note: '', order: Object.keys(window.WC_SECTIONS || {}) }, standard: { name: 'Store', note: '', order: Object.keys(window.WC_SECTIONS || {}) }, walmart: { name: 'Store', note: '', order: Object.keys(window.WC_SECTIONS || {}) } };
+    if (!window.WC_LAYOUTS.walmart) window.WC_LAYOUTS.walmart = window.WC_LAYOUTS.standard;
+    // recipes that use an ingredient this copy of data-items.js doesn't have are skipped (an old data-items.js)
+    const knownItem = new Set(window.WC_ITEMS.map(i => i.id));
+    const before = window.WC_RECIPES.length;
+    window.WC_RECIPES = window.WC_RECIPES.filter(r => r.ing.every(([id]) => knownItem.has(id) && window.WC_NUTR[id]));
+    if (window.WC_RECIPES.length < before && !MISSING.includes('data-items.js')) MISSING.push('data-items.js (the newest copy)');
     const ITEMS = {}; window.WC_ITEMS.forEach(i => { ITEMS[i.id] = i; });
     const RECIPES = window.WC_RECIPES;
     const R = {}; RECIPES.forEach(r => { R[r.id] = r; });
@@ -33,6 +47,7 @@
     let NEARBY = null;    // stores found near the ZIP code
     let MY = recall(KEY_MY) || {};   // prices you typed in from your receipts: { storeId: { itemId: price per package } }
     let editing = null;              // item whose price is being edited
+    let showExtras = false;          // the "snacks & extras" picker is open
     let tab = 'list';
 
     const CHAIN_BY_ID = {}; CHAINS.forEach(c => { CHAIN_BY_ID[c.id] = c; });
@@ -80,7 +95,7 @@
     }
     function regionText() {
         const r = region();
-        if (!r.st) return 'Add your ZIP code to adjust prices for where you live.';
+        if (!r.st) return 'not yet adjusted for your area (add your ZIP code)';
         const d = Math.round(r.idx - 100);
         return `adjusted for ${esc(r.name)} (groceries there run ${d === 0 ? 'about average' : Math.abs(d) + '% ' + (d > 0 ? 'above' : 'below') + ' the U.S. average'})`;
     }
@@ -115,10 +130,11 @@
     function mealsOf(plan) {
         const out = [];
         const dinnerX = S.leftovers ? 2 : 1;
-        plan.dinners.forEach(id => out.push([id, S.people / servesOf(R[id]) * dinnerX, dinnerX]));
+        const f = plan.portion || 1;   // bigger or smaller portions to match a calorie goal
+        plan.dinners.forEach(id => out.push([id, S.people / servesOf(R[id]) * dinnerX * f, dinnerX]));
         const split = (ids, days) => ids.forEach((id, i) => {
             const d = Math.floor(days / ids.length) + (i < days % ids.length ? 1 : 0);
-            out.push([id, S.people / 4 * d, d]);
+            out.push([id, S.people / 4 * d * f, d]);
         });
         if (plan.breakfasts.length) split(plan.breakfasts, 7);
         if (plan.lunches.length) split(plan.lunches, 5);
@@ -175,6 +191,8 @@
         const parts = { breakfast: avg(plan.breakfasts, [4, 3]), lunch: [0, 0], dinner: avg(plan.dinners), snack: [0, 0] };
         if (plan.lunches.length) parts.lunch = avg(plan.lunches, [3, 2]);
         else if (S.leftovers && S.lunch) parts.lunch = parts.dinner.slice();
+        const f = plan.portion || 1;
+        ['breakfast', 'lunch', 'dinner'].forEach(k => { parts[k] = [Math.round(parts[k][0] * f), Math.round(parts[k][1] * f)]; });
         (plan.snacks || []).forEach(([id, n]) => { parts.snack[0] += R[id].nu.cal * n; parts.snack[1] += R[id].nu.pro * n; });
         const cal = parts.dinner[0] + parts.breakfast[0] + parts.lunch[0] + parts.snack[0];
         const pro = parts.dinner[1] + parts.breakfast[1] + parts.lunch[1] + parts.snack[1];
@@ -191,16 +209,41 @@
         let pro = d.pro + (d.covers.breakfast ? 0 : 15) + (d.covers.lunch ? 0 : 20);
         const pool = RECIPES.filter(r => r.type === 'snack' && allowed(r) && (!S.proteins.length || r.pro === 'veg' || S.proteins.includes(r.pro)));
         const out = [];
-        for (let i = 0; i < 3; i++) {
+        const shuffled = shuffle(pool);
+        for (let i = 0; i < 4; i++) {
             const calGap = g.cal ? g.cal - cal : 0, proGap = g.pro ? g.pro - pro : 0;
-            const opts = pool.filter(r => !out.some(o => o[0] === r.id));
+            // a snack can repeat once (two a day), but not more
+            const opts = shuffled.filter(r => { const o = out.find(x => x[0] === r.id); return !o || o[1] < 2; });
             let best = null;
-            if (proGap > 6) best = opts.filter(r => !g.cal || r.nu.cal <= calGap + 150).sort((a, b) => b.nu.pro / b.nu.cal - a.nu.pro / a.nu.cal)[0];
-            else if (calGap > 120) best = opts.filter(r => r.nu.cal <= calGap + 100).sort((a, b) => b.nu.cal - a.nu.cal)[0];
+            if (proGap > 6) best = opts.filter(r => !g.cal || r.nu.cal <= Math.max(calGap, 0) + 120).sort((a, b) => (b.nu.pro + 0.02 * Math.min(b.nu.cal, Math.max(calGap, 0))) / Math.max(60, b.nu.cal) - (a.nu.pro + 0.02 * Math.min(a.nu.cal, Math.max(calGap, 0))) / Math.max(60, a.nu.cal))[0];
+            else if (calGap > 120) best = opts.filter(r => r.nu.cal <= calGap + 100).sort((a, b) => (b.nu.cal + b.nu.pro * 4) - (a.nu.cal + a.nu.pro * 4))[0];
             if (!best) break;
-            out.push([best.id, 1]); cal += best.nu.cal; pro += best.nu.pro;
+            const o = out.find(x => x[0] === best.id);
+            if (o) o[1]++; else out.push([best.id, 1]);
+            cal += best.nu.cal; pro += best.nu.pro;
         }
         return out;
+    }
+
+    // ---------- fit the plan to the daily goals: portion size + snacks ----------
+    function fitGoals(plan) {
+        plan.portion = 1;
+        plan.snacks = pickSnacks(plan);
+        const g = goals();
+        if (!g.cal && !g.pro) return plan;
+        for (let k = 0; k < 3; k++) {
+            const d = dailyNutrition(Object.assign({}, plan, { portion: 1 }));
+            const extra = (d.covers.breakfast ? 0 : 350) + (d.covers.lunch ? 0 : 500);
+            const mealsCal = d.parts.dinner[0] + d.parts.breakfast[0] + d.parts.lunch[0];
+            let f = 1;
+            if (g.cal && mealsCal > 0) f = (g.cal - d.parts.snack[0] - extra) / mealsCal;
+            else if (g.pro && mealsCal > 0) { const mp = d.parts.dinner[1] + d.parts.breakfast[1] + d.parts.lunch[1]; f = (g.pro - d.parts.snack[1] - (d.covers.breakfast ? 0 : 15) - (d.covers.lunch ? 0 : 20)) / Math.max(1, mp); }
+            plan.portion = Math.round(Math.max(0.8, Math.min(1.6, f)) * 20) / 20;
+            const snacks = pickSnacks(plan);
+            if (JSON.stringify(snacks) === JSON.stringify(plan.snacks)) break;
+            plan.snacks = snacks;
+        }
+        return plan;
     }
 
     // ---------- the planner ----------
@@ -214,10 +257,14 @@
         const g = goals();
         const dinnerShare = S.snacks ? 0.36 : 0.4;
         const perMeal = S.budget / Math.max(1, S.dinners + (S.breakfast ? 2 : 0) + (useLunchRecipes() ? 2 : 0));
+        // share of calories coming from protein that the goals call for (e.g. 150 g in 2,200 cal = 27%)
+        const targetPct = g.pro ? Math.min(0.4, g.pro * 4 / (g.cal || 2000)) : 0;
+        const proDensityPenalty = r => targetPct ? Math.max(0, targetPct - r.nu.pro * 4 / Math.max(1, r.nu.cal)) / targetPct : 0;
         const goalPenalty = r => {
             let p = 0;
             if (g.cal) { const t = g.cal * dinnerShare; p += Math.abs(r.nu.cal - t) / t * perMeal * 0.9; }
             if (g.pro) { const t = g.pro * dinnerShare; p += Math.max(0, t - r.nu.pro) / t * perMeal * 1.1; }
+            if (g.pro) p += proDensityPenalty(r) * perMeal * 1.4;
             return p;
         };
         const wasteW = S.minWaste ? 3 : (S.people <= 2 ? 1.2 : 0.7);   // small households and "minimize leftovers" work harder to finish every package
@@ -232,7 +279,7 @@
                 const chosen = [];
                 for (let i = 0; i < n && list.length; i++) {
                     const m = sc / 4 * Math.ceil(days / n);
-                    const opts = list.filter(r => !chosen.includes(r.id)).map(r => ({ id: r.id, c: addCost(need, r.id, m, wasteW) + Math.random() * noise + (g.pro ? Math.max(0, g.pro * 0.22 - r.nu.pro) / (g.pro * 0.22) * perMeal * 0.6 : 0) }));
+                    const opts = list.filter(r => !chosen.includes(r.id)).map(r => ({ id: r.id, c: addCost(need, r.id, m, wasteW) + Math.random() * noise + (g.pro ? Math.max(0, g.pro * 0.22 - r.nu.pro) / (g.pro * 0.22) * perMeal * 0.6 + proDensityPenalty(r) * perMeal * 1.2 : 0) }));
                     if (!opts.length) break;
                     opts.sort((a, b) => a.c - b.c);
                     const pick = opts[Math.floor(Math.random() * Math.min(3, opts.length))].id;
@@ -261,7 +308,7 @@
                 plan.dinners.push(pick); add(pick, sc / servesOf(R[pick]) * dinnerX);
                 proCount[R[pick].pro] = (proCount[R[pick].pro] || 0) + 1;
             }
-            plan.snacks = pickSnacks(plan);
+            fitGoals(plan);
             const n2 = needs(plan).need;
             const cost = costOfNeed(n2), waste = wasteOf(n2);
             const variety = new Set(plan.dinners.map(d => R[d].pro)).size + new Set(plan.dinners.flatMap(d => R[d].tags)).size * 0.3;
@@ -320,7 +367,7 @@
             }
             if (!improved) break;
         }
-        plan.snacks = pickSnacks(plan);
+        fitGoals(plan);
         return cur;
     }
     function minimizeLeftovers() {
@@ -349,7 +396,7 @@
         const list = fit.length ? fit : opts.sort((a, b) => a.c - b.c).slice(0, 3);
         const pick = list[Math.floor(Math.random() * list.length)].id;
         PLAN.dinners[idx] = pick;
-        PLAN.snacks = pickSnacks(PLAN);
+        fitGoals(PLAN);
         store(KEY_PLAN, PLAN);
         renderResults();
         toast(`Swapped in ${R[pick].n}`);
@@ -366,13 +413,22 @@
                 uses: [...uses[id]], staple: S.staples && it.staple, left, leftFrac: left / packOf(id)
             };
         });
+        // snacks & extras you added by hand
+        const ex = PLAN.extras || {};
+        Object.keys(ex).forEach(id => {
+            if (!ITEMS[id] || !(ex[id] > 0)) return;
+            const row = rows.find(r => r.id === id);
+            if (row) { row.n += ex[id]; row.total = row.n * row.price; row.uses.push('Extras'); row.staple = false; row.left += ex[id] * packOf(id); }
+            else rows.push({ id, it: ITEMS[id], n: ex[id], need: 0, price: priceOf(id), total: ex[id] * priceOf(id), live: liveFor(id), uses: ['Extras'], staple: false, left: 0, leftFrac: 0, extra: true });
+        });
+        (PLAN.custom || []).forEach((c, i) => rows.push({ id: 'c' + i, custom: i, it: { n: c.name, s: c.s || 'snacks', pk: '' }, n: c.qty || 1, need: 0, price: c.price || 0, total: (c.qty || 1) * (c.price || 0), uses: ['Extras'], staple: false, left: 0, leftFrac: 0, extra: true }));
         const pantry = rows.filter(r => r.staple);
         const buy = rows.filter(r => !r.staple);
         const total = buy.filter(r => !PLAN.have[r.id]).reduce((s, r) => s + r.total, 0);
         // how much of the fresh food gets used
         let freshBought = 0, freshUsed = 0;
-        buy.filter(r => PERISH.has(r.id) && !PLAN.have[r.id]).forEach(r => { freshBought += r.total; freshUsed += r.need / packOf(r.id) * r.price; });
-        const leftovers = buy.filter(r => PERISH.has(r.id) && r.leftFrac >= 0.3 && !PLAN.have[r.id]).sort((a, b) => b.leftFrac * b.price - a.leftFrac * a.price);
+        buy.filter(r => PERISH.has(r.id) && !PLAN.have[r.id] && !r.extra).forEach(r => { freshBought += r.total; freshUsed += r.need / packOf(r.id) * r.price; });
+        const leftovers = buy.filter(r => PERISH.has(r.id) && !r.extra && r.leftFrac >= 0.3 && !PLAN.have[r.id]).sort((a, b) => b.leftFrac * b.price - a.leftFrac * a.price);
         // group by aisle (live Kroger) or by section in this store's usual layout
         const lay = layout();
         const groups = {};
@@ -505,7 +561,9 @@
             <div class="nparts">${parts}</div>
             ${missing.length ? `<p class="hint">Your plan doesn't include ${missing.join(' or ')}, so ${hasGoals() ? 'the rest of your day comes from food you plan yourself' : 'these totals only count the meals in your plan'}.</p>` : ''}
             ${PLAN.dinners.length < 7 && !(S.leftovers && !S.lunch) ? `<p class="hint">${7 - PLAN.dinners.length} night${7 - PLAN.dinners.length === 1 ? ' is' : 's are'} left open for eating out or using up what's in the fridge.</p>` : ''}
-            ${PLAN.snacks && PLAN.snacks.length ? `<p class="hint">🍎 Daily snacks added for your goals: ${PLAN.snacks.map(([id]) => esc(R[id].n)).join(', ')}.</p>` : ''}
+            ${PLAN.portion && PLAN.portion !== 1 ? `<p class="hint">🍽️ Portions are sized at <b>${PLAN.portion}×</b> a normal serving to fit your ${goals().cal ? goals().cal.toLocaleString() + '-calorie' : 'protein'} goal. The recipes and shopping list already include the extra food.</p>` : ''}
+            ${PLAN.snacks && PLAN.snacks.length ? `<p class="hint">🍎 Daily snacks added for your goals: ${PLAN.snacks.map(([id, n]) => esc(R[id].n) + (n > 1 ? ' ×' + n : '')).join(', ')}.</p>` : ''}
+            ${hasGoals() && !S.snacks && (goals().pro && d.pro < goals().pro * 0.9 || goals().cal && d.cal < goals().cal * 0.9) ? `<p class="hint note">💡 Turn on <b>Add snacks to help reach my goals</b> to close the gap.</p>` : ''}
         </div>`;
     }
 
@@ -537,13 +595,30 @@
         bindResults();
     }
     function tools() {
-        return `<div class="list-tools"><button class="btn small primary-soft" data-act="print">🖨️ Print list & recipes</button><button class="btn small" data-act="trim">♻️ Minimize leftovers</button><button class="btn small" data-act="copy">📋 Copy list</button>${S.worker && S.instacart ? '<button class="btn small" data-act="instacart">🥕 Shop on Instacart</button>' : ''}<button class="btn small" data-act="regen">🔄 New plan</button></div>`;
+        return `<div class="list-tools"><button class="btn small primary-soft" data-act="print">🖨️ Print list & recipes</button><button class="btn small" data-act="trim">♻️ Minimize leftovers</button><button class="btn small" data-act="extras">➕ Snacks & extras</button><button class="btn small" data-act="copy">📋 Copy list</button><button class="btn small insta" data-act="instacart">🥕 Shop on Instacart</button><button class="btn small" data-act="regen">🔄 New plan</button></div>`;
     }
     function emptyState() {
         return `<div class="card empty"><div class="empty-art">🥕🧅🥖🧀🍗</div><h2>Your week, planned in one click</h2>
             <p>Set your budget, goals and what you like to eat. WeekCart picks dinners that share ingredients (so less goes to waste), adds up exactly what to buy in real package sizes, and puts the list in the order you walk the store.</p></div>`;
     }
 
+    const EXTRA_GROUPS = [
+        ['🍿 Snacks', ['x_granolabar', 'x_protbar', 'x_crackers', 'x_cheesecrackers', 'x_pretzels', 'x_popcorn', 'x_potatochips', 'chips', 'x_trailmix', 'x_cookies', 'x_applesauce', 'x_fruitcups']],
+        ['💪 Protein snacks', ['stringcheese', 'yogcup', 'jerky', 'protpowder', 'edamame', 'hummus', 'cottage', 'eggs']],
+        ['🍎 Fruit & veggies', ['banana', 'apple', 'x_grapes', 'x_oranges', 'berries', 'babycarrot', 'cucumber']],
+        ['🥤 Drinks', ['x_coffee', 'x_creamer', 'x_oj', 'milk', 'x_sparkling', 'x_water', 'x_tea']],
+        ['🧊 Frozen treats & easy meals', ['x_icecream', 'x_frzpizza', 'frzwaffle']]
+    ];
+    function extrasPanel() {
+        const ex = PLAN.extras || {};
+        const groups = EXTRA_GROUPS.map(([title, ids]) => `<div class="ex-group"><h4>${title}</h4><div class="ex-chips">${ids.filter(id => ITEMS[id]).map(id => {
+            const n = ex[id] || 0;
+            return `<span class="ex-chip ${n ? 'on' : ''}"><button type="button" data-addextra="${id}">${esc(ITEMS[id].n)} <small>${money(priceOf(id))}</small>${n ? ` <b>×${n}</b>` : ' ＋'}</button>${n ? `<button type="button" class="ex-minus" data-subextra="${id}" aria-label="One less">−</button>` : ''}</span>`;
+        }).join('')}</div></div>`).join('');
+        return `<div class="card extras"><div class="ex-head"><h3>➕ Snacks & extras</h3><button class="btn small ghost" data-act="extras">Done</button></div>
+            <p class="hint">Tap to add to your list (tap again for more). They're added to your total and sorted into the right aisle.</p>${groups}
+            <div class="ex-group"><h4>✏️ Something else</h4><div class="ex-custom"><input id="ex-name" placeholder="Item (e.g. paper towels)"><div class="money-in"><span>$</span><input id="ex-price" type="number" step="0.01" min="0" placeholder="0.00"></div><button class="btn small primary-soft" data-act="addcustom">Add</button></div></div></div>`;
+    }
     function listView(L) {
         const groups = L.groups.map(g => `<section class="aisle"><h3>${g.icon} ${esc(g.label)}</h3>${g.rows.map(r => {
             const have = PLAN.have[r.id], got = PLAN.got[r.id];
@@ -554,24 +629,26 @@
                 <div class="item-sub">${esc(pkgText(r))}${r.live && r.live.url ? ` · <a href="${esc(r.live.url)}" target="_blank" rel="noopener">view</a>` : ''} · for ${esc(r.uses.slice(0, 3).join(', '))}${r.uses.length > 3 ? ' +' + (r.uses.length - 3) : ''}</div></div>
                 <div class="item-right">${editing === r.id
                     ? `<div class="price-edit"><span>$</span><input type="number" step="0.01" min="0" inputmode="decimal" id="price-in" value="${priceOf(r.id).toFixed(2)}" aria-label="Price per package"><button class="btn small primary-soft" data-saveprice="${r.id}">Save</button></div><small class="pe-hint">per ${esc(r.it.pk)}${myPrice(r.id) ? ` · <a href="#" data-clearprice="${r.id}">use estimate</a>` : ''}</small>`
+                    : r.custom !== undefined ? `<div class="item-price">${money(r.total)}</div>`
                     : `<button class="item-price" data-editprice="${r.id}" title="Tap to enter the price you paid">${have ? '<s>' + money(r.total) + '</s>' : money(r.total)}${myPrice(r.id) ? ' <span class="mine">✓ yours</span>' : r.live ? '' : ' <span class="est">est.</span>'}</button>`}
-                <button class="have-btn" data-have="${r.id}">${have ? 'Need it' : 'Have it'}</button></div></div>`;
+                ${r.extra ? `<button class="have-btn" data-unextra="${r.id}">Remove</button>` : `<button class="have-btn" data-have="${r.id}">${have ? 'Need it' : 'Have it'}</button>`}</div></div>`;
         }).join('')}</section>`).join('');
         const pantry = L.pantry.length ? `<details class="card pantry"><summary>🧂 Check your pantry for ${L.pantry.length} basics (not in the total)</summary><ul>${L.pantry.map(r => `<li>${esc(r.it.n)}</li>`).join('')}</ul></details>` : '';
-        return `<p class="hint">Tap an item when it's in your cart. Tap "Have it" for things already at home. Tap a price to type in what it really costs at your store. WeekCart remembers it next time.</p>
+        return `${showExtras ? extrasPanel() : ''}<p class="hint">Tap an item when it's in your cart. Tap "Have it" for things already at home. Tap a price to type in what it really costs at your store. WeekCart remembers it next time.</p>
             <div class="card list">${groups}</div>${pantry}`;
     }
 
     function recipeCard(rid, kind, idx, forPrint) {
         const r = R[rid];
-        const batch = kind === 'dinner' ? S.people / servesOf(r) * (S.leftovers ? 2 : 1) : S.people / servesOf(r);
+        const pf = kind === 'snack' ? 1 : (PLAN.portion || 1);
+        const batch = (kind === 'dinner' ? S.people / servesOf(r) * (S.leftovers ? 2 : 1) : S.people / servesOf(r)) * pf;
         let cost = 0; r.ing.forEach(([id, q]) => { if (countsCost(id)) cost += q / packOf(id) * priceOf(id); });
         const per = cost / servesOf(r);
         const timeTxt = r.time >= 120 ? `${Math.round(r.time / 60)} hr (hands-off)` : `${r.time} min`;
         const tags = r.tags.map(t => (CATS.style.find(c => c.id === t) || {}).name).filter(Boolean);
         const makes = Math.round(batch * servesOf(r) * 10) / 10;
         const sub = kind === 'dinner' ? (S.leftovers ? `makes ${makes} servings: dinner + leftovers` : `makes ${makes} servings`)
-            : kind === 'breakfast' ? 'about 3–4 mornings' : kind === 'lunch' ? 'about 2–3 days' : 'daily snack';
+            : kind === 'breakfast' ? 'about 3–4 mornings' : kind === 'lunch' ? 'about 2–3 days' : 'daily snack' + ((PLAN.snacks.find(x => x[0] === r.id) || [0, 1])[1] > 1 ? ' ×2' : '');
         return `<article class="card recipe">
             <div class="rec-head"><span class="rec-emoji">${r.emoji}</span><div class="rec-title"><div class="kicker">${kind.toUpperCase()} · ${sub}</div><h3>${esc(r.n)}</h3>
             <div class="rec-meta">⏱️ ${timeTxt} · ~${money(per)}/serving</div>
@@ -642,7 +719,19 @@
         setTimeout(() => { if (!window.matchMedia('print').matches) done(); }, 1500);
     }
 
-    function render() { renderForm(); renderResults(); }
+    function render() {
+        try { renderForm(); renderResults(); }
+        catch (e) {
+            $('form').innerHTML = `<div class="hint err"><b>Something went wrong loading WeekCart.</b> Usually that means a file is missing or out of date. Re-upload all the WeekCart files to your site, then refresh with Ctrl+Shift+R.<br><small>${esc(e.message)}</small></div>`;
+            console.error(e);
+        }
+        if (MISSING.length) {
+            const box = document.createElement('div');
+            box.className = 'missing-files';
+            box.innerHTML = `⚠️ <b>Some WeekCart files are missing from this site:</b> ${MISSING.map(f => `<code>${esc(f)}</code>`).join(', ')}. Upload them next to <code>index.html</code>, then refresh. The site still works, but with fewer recipes, stores or price adjustments.`;
+            const f = $('form'); if (f && !f.querySelector('.missing-files')) f.prepend(box);
+        }
+    }
 
     // ==========================================
     // NEARBY STORES (free: ZIP → location from zippopotam.us, stores from OpenStreetMap)
@@ -715,9 +804,10 @@
         $('f-lunch').onchange = e => { S.lunch = e.target.checked; saveSettings(); };
         $('f-leftovers').onchange = e => { S.leftovers = e.target.checked; saveSettings(); $('one-hint').hidden = !(S.people === 1 && !S.leftovers); };
         $('f-minwaste').onchange = e => { S.minWaste = e.target.checked; saveSettings(); };
-        $('f-snacks').onchange = e => { S.snacks = e.target.checked; saveSettings(); };
-        $('f-cal').oninput = e => { S.calGoal = e.target.value; saveSettings(); };
-        $('f-pro').oninput = e => { S.proGoal = e.target.value; saveSettings(); };
+        $('f-snacks').onchange = e => { S.snacks = e.target.checked; S.snacksTouched = true; saveSettings(); };
+        const goalTyped = () => { if (!S.snacksTouched && (S.calGoal || S.proGoal) && !S.snacks) { S.snacks = true; $('f-snacks').checked = true; } saveSettings(); };
+        $('f-cal').oninput = e => { S.calGoal = e.target.value; goalTyped(); };
+        $('f-pro').oninput = e => { S.proGoal = e.target.value; goalTyped(); };
         $('f-staples').onchange = e => { S.staples = e.target.checked; saveSettings(); if (PLAN) renderResults(); };
         $('f-chain').onchange = e => { NEARBY = null; setStore(e.target.value, null); };
         $('find-stores').onclick = findNearby;
@@ -735,6 +825,14 @@
         document.querySelectorAll('[data-got]').forEach(c => c.onchange = () => { PLAN.got[c.dataset.got] = c.checked; store(KEY_PLAN, PLAN); c.closest('.item').classList.toggle('got', c.checked); });
         document.querySelectorAll('[data-have]').forEach(b => b.onclick = () => { const id = b.dataset.have; PLAN.have[id] = !PLAN.have[id]; store(KEY_PLAN, PLAN); renderResults(); });
         document.querySelectorAll('[data-swap]').forEach(b => b.onclick = () => swapDinner(+b.dataset.swap));
+        const bumpExtra = (id, d) => { PLAN.extras = PLAN.extras || {}; PLAN.extras[id] = Math.max(0, (PLAN.extras[id] || 0) + d); if (!PLAN.extras[id]) delete PLAN.extras[id]; store(KEY_PLAN, PLAN); const y = window.scrollY; renderResults(); window.scrollTo(0, y); };
+        document.querySelectorAll('[data-addextra]').forEach(b => b.onclick = () => bumpExtra(b.dataset.addextra, 1));
+        document.querySelectorAll('[data-subextra]').forEach(b => b.onclick = () => bumpExtra(b.dataset.subextra, -1));
+        document.querySelectorAll('[data-unextra]').forEach(b => b.onclick = () => {
+            const id = b.dataset.unextra;
+            if (/^c\d+$/.test(id)) PLAN.custom.splice(+id.slice(1), 1); else if (PLAN.extras) delete PLAN.extras[id];
+            store(KEY_PLAN, PLAN); renderResults();
+        });
         document.querySelectorAll('[data-editprice]').forEach(b => b.onclick = () => { editing = b.dataset.editprice; renderResults(); const i = $('price-in'); if (i) { i.focus(); i.select(); } });
         const saveIt = id => {
             const v = parseFloat($('price-in').value);
@@ -751,7 +849,14 @@
             if (a === 'print') printAll();
             if (a === 'copy') copyList();
             if (a === 'trim') minimizeLeftovers();
-            if (a === 'instacart') sendToInstacart(b);
+            if (a === 'instacart') { if (S.worker && S.instacart) sendToInstacart(b); else instacartHelp(); }
+            if (a === 'extras') { showExtras = !showExtras; tab = 'list'; renderResults(); if (showExtras) { const c = document.querySelector('.extras'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }
+            if (a === 'addcustom') {
+                const name = $('ex-name').value.trim(), price = parseFloat($('ex-price').value) || 0;
+                if (!name) { toast('Type the item name first.'); return; }
+                PLAN.custom = PLAN.custom || []; PLAN.custom.push({ name, price, qty: 1 });
+                store(KEY_PLAN, PLAN); renderResults(); toast(`Added ${name}`);
+            }
             if (a === 'regen') generate();
             if (a === 'settings') { e.preventDefault(); openSettings(); }
         });
@@ -765,25 +870,45 @@
             btn.disabled = false;
         }
         btn.textContent = '🛒 Make my plan';
-        PLAN = buildPlan();
+        const keep = PLAN ? { extras: PLAN.extras, custom: PLAN.custom } : {};   // your added snacks & extras carry over to the new plan
+        PLAN = Object.assign(buildPlan(), keep);
         store(KEY_PLAN, PLAN);
         tab = 'list';
         renderResults();
         $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    function copyList() {
+    function listText() {
         const L = shoppingList();
         const lines = [`WeekCart: ${storeLabel()} list (${money(L.total)})`, ''];
-        L.groups.forEach(g => { lines.push(`${g.icon} ${g.label.toUpperCase()}`); g.rows.filter(r => !PLAN.have[r.id]).forEach(r => lines.push(`☐ ${r.n > 1 ? r.n + '× ' : ''}${r.live ? r.live.name : r.it.n} (${pkgText(r)}) ${money(r.total)}`)); lines.push(''); });
+        L.groups.forEach(g => { lines.push(`${g.icon} ${g.label.toUpperCase()}`); g.rows.filter(r => !PLAN.have[r.id]).forEach(r => lines.push(`☐ ${r.n > 1 ? r.n + '× ' : ''}${r.live ? r.live.name : r.it.n}${pkgText(r) ? ' (' + pkgText(r) + ')' : ''} ${money(r.total)}`)); lines.push(''); });
         lines.push('DINNERS: ' + PLAN.dinners.map(id => R[id].n).join(', '));
-        const text = lines.join('\n');
-        (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(() => toast('List copied. Paste it into your notes or a text.'), () => toast('Couldn\'t copy. Try Print instead.'));
+        return lines.join('\n');
+    }
+    function copyList() {
+        (navigator.clipboard ? navigator.clipboard.writeText(listText()) : Promise.reject()).then(() => toast('List copied. Paste it into your notes or a text.'), () => toast('Couldn\'t copy. Try Print instead.'));
+    }
+    function instacartHelp() {
+        const d = $('settings');
+        d.innerHTML = `<div class="dialog card"><button class="close" data-close aria-label="Close">✕</button>
+            <h2>🥕 Shop this list on Instacart</h2>
+            <p><b>The one-click button isn't connected yet.</b> Sending a whole list to Instacart needs a free Instacart developer key, and Instacart reviews new sites before giving one out (usually a few weeks).</p>
+            <div class="ways">
+                <div class="way"><b>Right now</b><span>Copy your list, open Instacart, choose your store, and search each item. Your list is already in store order, so it goes quickly.</span>
+                    <div class="dialog-btns"><button class="btn primary" id="ic-copy">📋 Copy list</button><a class="btn ghost" href="https://www.instacart.com/store" target="_blank" rel="noopener">Open Instacart ↗</a></div></div>
+                <div class="way"><b>Once you have a key</b><span>Add it to your worker and turn on the Instacart switch. This button then sends the whole list in one click, and you pick any store and see its real prices.</span>
+                    <div class="dialog-btns"><button class="btn ghost" id="ic-setup">Show me the setup</button></div></div>
+            </div></div>`;
+        d.hidden = false;
+        d.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { d.hidden = true; });
+        d.onclick = e => { if (e.target === d) d.hidden = true; };
+        $('ic-copy').onclick = () => (navigator.clipboard ? navigator.clipboard.writeText(listText()) : Promise.reject()).then(() => toast('List copied!'), () => toast('Couldn\'t copy. Use Print instead.'));
+        $('ic-setup').onclick = () => { openSettings(); setTimeout(() => { const h = [...document.querySelectorAll('.dialog h2')].find(x => /Instacart/.test(x.textContent)); if (h) h.scrollIntoView({ block: 'start' }); }, 50); };
     }
     async function sendToInstacart(btn) {
         const L = shoppingList();
         const items = [];
         L.groups.forEach(g => g.rows.filter(r => !PLAN.have[r.id]).forEach(r => items.push({
-            name: r.it.n.replace(/ \(.+\)$/, ''), display_text: `${r.n > 1 ? r.n + ' × ' : ''}${r.it.n} (${r.it.pk})`,
+            name: r.it.n.replace(/ \(.+\)$/, ''), display_text: `${r.n > 1 ? r.n + ' × ' : ''}${r.it.n}${r.it.pk ? ' (' + r.it.pk + ')' : ''}`,
             line_item_measurements: [{ quantity: r.n, unit: 'each' }]
         })));
         btn.disabled = true; btn.textContent = '🥕 Making your Instacart list…';

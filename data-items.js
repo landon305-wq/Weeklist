@@ -21,22 +21,24 @@ window.WC_SECTIONS = {
     intl:       { name: 'International',        icon: '🌮' },
     condiments: { name: 'Sauces & condiments',  icon: '🧂' },
     baking:     { name: 'Baking & spices',      icon: '🧁' },
-    frozen:     { name: 'Frozen',               icon: '🧊' }
+    frozen:     { name: 'Frozen',               icon: '🧊' },
+    snacks:     { name: 'Snacks',               icon: '🍿' },
+    drinks:     { name: 'Drinks & coffee',      icon: '🥤' }
 };
 
 // Typical walking orders. Real stores vary; in live Kroger mode the list uses the real aisle numbers instead.
 window.WC_LAYOUTS = {
     aldi: {
         name: 'ALDI-style', note: 'Small no-frills stores (ALDI, Lidl, Save A Lot) are laid out almost the same everywhere: produce and bread first, then the dry-goods aisles, then the refrigerated wall (meat, deli, dairy) along the back, and frozen near the registers.',
-        order: ['produce', 'bakery', 'breakfast', 'pasta', 'canned', 'intl', 'condiments', 'baking', 'meat', 'deli', 'dairy', 'frozen']
+        order: ['produce', 'bakery', 'breakfast', 'snacks', 'pasta', 'canned', 'intl', 'condiments', 'baking', 'drinks', 'meat', 'deli', 'dairy', 'frozen']
     },
     standard: {
         name: 'Supermarket', note: 'Typical supermarket flow: produce at the entrance, bakery and deli next, meat along the back wall, the center aisles, then frozen and dairy last so cold things stay cold.',
-        order: ['produce', 'bakery', 'deli', 'meat', 'pasta', 'intl', 'canned', 'condiments', 'baking', 'breakfast', 'frozen', 'dairy']
+        order: ['produce', 'bakery', 'deli', 'meat', 'pasta', 'intl', 'canned', 'condiments', 'baking', 'breakfast', 'snacks', 'drinks', 'frozen', 'dairy']
     },
     walmart: {
         name: 'Supercenter', note: 'Supercenters (Walmart, Target, Meijer) usually put produce at the grocery entrance, bakery and deli beside it, dry-goods aisles in the middle, and meat, dairy and frozen along the back wall.',
-        order: ['produce', 'bakery', 'deli', 'pasta', 'canned', 'intl', 'condiments', 'baking', 'breakfast', 'meat', 'dairy', 'frozen']
+        order: ['produce', 'bakery', 'deli', 'pasta', 'canned', 'intl', 'condiments', 'baking', 'breakfast', 'snacks', 'drinks', 'meat', 'dairy', 'frozen']
     }
 };
 
@@ -219,7 +221,36 @@ window.WC_ITEMS = [
     { id: 'gnocchi', n: 'Potato gnocchi', s: 'pasta', p: 16, u: 'oz', a: 1.99, k: 2.79, pk: '16 oz package', t: 'potato gnocchi 16 oz', oz: 1, must: 'gnocchi', not: 'cauliflower|frozen|sweet potato', alg: ['gluten'] },
     { id: 'alfredo', n: 'Alfredo sauce', s: 'condiments', p: 1, u: 'jar', pl: 'jars', a: 1.99, k: 2.79, pk: '15 oz jar', t: 'classic alfredo sauce 15 oz jar', oz: 15, must: 'alfredo', not: 'pasta|mix|frozen|chicken', alg: ['dairy'] },
     { id: 'sesameoil', n: 'Toasted sesame oil', s: 'intl', p: 10, u: 'tbsp', a: 2.49, k: 3.49, pk: '5 oz bottle', t: 'toasted sesame oil 5 oz', oz: 0.5, must: 'sesame oil' },
-    { id: 'cod', n: 'Frozen cod fillets', s: 'frozen', p: 1, u: 'lb', a: 6.49, k: 7.99, pk: '1 lb bag', t: 'frozen wild cod fillets 16 oz', oz: 16, must: '\\bcod\\b', not: 'battered|breaded|fish stick|crusted', alg: ['fish'] }
+    { id: 'cod', n: 'Frozen cod fillets', s: 'frozen', p: 1, u: 'lb', a: 6.49, k: 7.99, pk: '1 lb bag', t: 'frozen wild cod fillets 16 oz', oz: 16, must: '\\bcod\\b', not: 'battered|breaded|fish stick|crusted', alg: ['fish'] },
+    // ---------- protein helpers ----------
+    { id: 'protpowder', n: 'Whey protein powder', s: 'breakfast', p: 30, u: 'scoop', pl: 'scoops', a: 15.99, k: 21.99, pk: '2 lb tub (~30 scoops)', t: 'whey protein powder 2 lb', ct: 30, must: 'protein', not: 'bar|shake|drink|cereal|pancake|bites|ready', alg: ['dairy'] },
+    { id: 'stringcheese', n: 'String cheese', s: 'dairy', p: 12, u: 'stick', pl: 'sticks', a: 2.99, k: 3.49, pk: '12-pack', t: 'mozzarella string cheese 12 count', ct: 1, must: 'string|stick', not: 'bread|fried', alg: ['dairy'] },
+    { id: 'eggwhites', n: 'Liquid egg whites', s: 'dairy', p: 4, u: 'cup', pl: 'cups', a: 3.49, k: 4.29, pk: '32 oz carton', t: '100% liquid egg whites 32 oz', oz: 8, must: 'egg white', alg: ['egg'] },
+    { id: 'yogcup', n: 'Greek yogurt cups', s: 'dairy', p: 4, u: 'cup', pl: 'cups', a: 3.49, k: 3.99, pk: '4-pack (5.3 oz each)', t: 'greek yogurt cups 4 pack', ct: 1, must: 'greek', not: 'tub|32 oz|dip|bar|frozen', alg: ['dairy'] },
+    { id: 'edamame', n: 'Frozen shelled edamame', s: 'frozen', p: 2.5, u: 'cup', pl: 'cups', a: 2.29, k: 2.79, pk: '12 oz bag', t: 'frozen shelled edamame 12 oz', oz: 4.8, must: 'edamame' },
+    { id: 'jerky', n: 'Beef jerky', s: 'snacks', p: 3, u: 'oz', a: 4.99, k: 6.49, pk: '3 oz bag', t: 'original beef jerky 3 oz', oz: 1, must: 'jerky', not: 'dog|pet|turkey|chicken', alg: ['beef'] },
+    // ---------- snacks & extras (for the "Add snacks & extras" picker) ----------
+    { id: 'x_granolabar', n: 'Granola bars', s: 'snacks', p: 6, u: 'bar', pl: 'bars', a: 1.99, k: 2.79, pk: '6-pack', t: 'chewy granola bars 6 count', ct: 1, must: 'granola bar|chewy', not: 'cereal|bag', alg: ['gluten'] },
+    { id: 'x_protbar', n: 'Protein bars', s: 'snacks', p: 5, u: 'bar', pl: 'bars', a: 5.99, k: 7.99, pk: '5-pack', t: 'protein bars 5 count', ct: 1, must: 'protein bar|protein', not: 'powder|shake|drink|cereal', alg: ['dairy', 'nuts'] },
+    { id: 'x_crackers', n: 'Crackers', s: 'snacks', p: 1, u: 'box', pl: 'boxes', a: 1.89, k: 2.79, pk: '13 oz box', t: 'original snack crackers', ct: 1, must: 'cracker', not: 'graham|animal|cheese crackers', alg: ['gluten'] },
+    { id: 'x_cheesecrackers', n: 'Cheese crackers', s: 'snacks', p: 1, u: 'box', pl: 'boxes', a: 2.49, k: 3.49, pk: '12 oz box', t: 'cheese crackers 12 oz', ct: 1, must: 'cheese', alg: ['gluten', 'dairy'] },
+    { id: 'x_pretzels', n: 'Pretzels', s: 'snacks', p: 1, u: 'bag', pl: 'bags', a: 1.69, k: 2.49, pk: '16 oz bag', t: 'mini pretzels 16 oz', ct: 1, must: 'pretzel', not: 'chocolate|peanut butter', alg: ['gluten'] },
+    { id: 'x_popcorn', n: 'Microwave popcorn', s: 'snacks', p: 1, u: 'box', pl: 'boxes', a: 2.19, k: 2.99, pk: '3-pack box', t: 'microwave popcorn 3 count', ct: 1, must: 'popcorn', not: 'kernel|caramel|kettle' },
+    { id: 'x_trailmix', n: 'Trail mix', s: 'snacks', p: 1, u: 'bag', pl: 'bags', a: 3.49, k: 4.99, pk: '16 oz bag', t: 'trail mix 16 oz', ct: 1, must: 'trail mix', alg: ['nuts'] },
+    { id: 'x_potatochips', n: 'Potato chips', s: 'snacks', p: 1, u: 'bag', pl: 'bags', a: 1.99, k: 3.29, pk: '8 oz bag', t: 'original potato chips', ct: 1, must: 'potato chip|chips', not: 'tortilla|pita|veggie' },
+    { id: 'x_cookies', n: 'Chocolate chip cookies', s: 'snacks', p: 1, u: 'pack', pl: 'packs', a: 1.99, k: 2.99, pk: '13 oz pack', t: 'chocolate chip cookies', ct: 1, must: 'cookie', not: 'dough|mix|ice cream', alg: ['gluten', 'dairy', 'egg'] },
+    { id: 'x_applesauce', n: 'Applesauce pouches', s: 'snacks', p: 1, u: 'box', pl: 'boxes', a: 2.29, k: 3.29, pk: '4-pack', t: 'applesauce pouches 4 count', ct: 1, must: 'applesauce|apple sauce' },
+    { id: 'x_fruitcups', n: 'Fruit cups', s: 'snacks', p: 1, u: 'pack', pl: 'packs', a: 1.99, k: 2.79, pk: '4-pack', t: 'mixed fruit cups 4 pack', ct: 1, must: 'fruit cup|fruit', not: 'snacks gummy|juice' },
+    { id: 'x_grapes', n: 'Grapes', s: 'produce', p: 1, u: 'bag', pl: 'bags', a: 2.99, k: 4.49, pk: '~2 lb bag', t: 'red seedless grapes', ct: 1, must: 'grape', not: 'juice|jelly|tomato' },
+    { id: 'x_oranges', n: 'Mandarin oranges', s: 'produce', p: 1, u: 'bag', pl: 'bags', a: 3.49, k: 4.99, pk: '3 lb bag', t: 'mandarin oranges 3 lb', ct: 1, must: 'mandarin|clementine|cutie', not: 'can|cup' },
+    { id: 'x_icecream', n: 'Ice cream', s: 'frozen', p: 1, u: 'tub', pl: 'tubs', a: 2.99, k: 3.99, pk: '48 oz tub', t: 'vanilla ice cream 48 oz', ct: 1, must: 'ice cream', not: 'cone|sandwich|bar', alg: ['dairy'] },
+    { id: 'x_frzpizza', n: 'Frozen pizza', s: 'frozen', p: 1, u: 'pizza', pl: 'pizzas', a: 3.49, k: 4.99, pk: '12 in', t: 'frozen pepperoni pizza', ct: 1, must: 'pizza', not: 'roll|bites|crust|sauce', alg: ['gluten', 'dairy', 'pork'] },
+    { id: 'x_coffee', n: 'Ground coffee', s: 'drinks', p: 1, u: 'bag', pl: 'bags', a: 5.99, k: 7.99, pk: '12 oz bag', t: 'medium roast ground coffee 12 oz', ct: 1, must: 'coffee', not: 'creamer|filter|pod|k-cup|cold brew|ice cream' },
+    { id: 'x_oj', n: 'Orange juice', s: 'drinks', p: 1, u: 'jug', pl: 'jugs', a: 2.89, k: 3.99, pk: '52 oz', t: 'orange juice 52 oz', ct: 1, must: 'orange juice', not: 'concentrate|frozen' },
+    { id: 'x_sparkling', n: 'Sparkling water', s: 'drinks', p: 1, u: 'pack', pl: 'packs', a: 2.99, k: 4.49, pk: '8-pack cans', t: 'sparkling water 8 pack', ct: 1, must: 'sparkling|seltzer', not: 'wine|juice' },
+    { id: 'x_water', n: 'Bottled water', s: 'drinks', p: 1, u: 'case', pl: 'cases', a: 3.49, k: 4.49, pk: '24-pack', t: 'purified bottled water 24 pack', ct: 1, must: 'water', not: 'sparkling|flavored|coconut|enhancer' },
+    { id: 'x_tea', n: 'Tea bags', s: 'drinks', p: 1, u: 'box', pl: 'boxes', a: 1.79, k: 2.49, pk: '100 count', t: 'black tea bags 100 count', ct: 1, must: 'tea', not: 'tree|bottle|iced tea mix' },
+    { id: 'x_creamer', n: 'Coffee creamer', s: 'dairy', p: 1, u: 'bottle', pl: 'bottles', a: 2.49, k: 3.49, pk: '32 oz', t: 'coffee creamer 32 oz', ct: 1, must: 'creamer', alg: ['dairy'] }
 ];
 
 // ---------- nutrition: [calories, grams of protein] per recipe unit (approximate, USDA-style averages) ----------
@@ -250,7 +281,12 @@ window.WC_NUTR = {
     chips: [140, 2], frzwaffle: [95, 2], pierogi: [77, 2], frzspinach: [7, 0.8],
     cauliflower: [145, 11], kale: [8, 0.7], ginger: [5, 0.1], frenchbread: [1200, 40], tortellini: [85, 4], pizzadough: [960, 32],
     chuckroast: [1130, 85], porktender: [545, 95], wholechk: [690, 60], quinoa: [625, 24], couscous: [650, 22], gnocchi: [55, 1.3],
-    alfredo: [900, 14], sesameoil: [120, 0], cod: [370, 82]
+    alfredo: [900, 14], sesameoil: [120, 0], cod: [370, 82],
+    protpowder: [120, 24], stringcheese: [80, 7], eggwhites: [120, 26], yogcup: [110, 13], edamame: [190, 17], jerky: [80, 11],
+    x_granolabar: [100, 1], x_protbar: [200, 20], x_crackers: [1700, 30], x_cheesecrackers: [1700, 34], x_pretzels: [1700, 40],
+    x_popcorn: [1200, 24], x_trailmix: [2200, 60], x_potatochips: [1200, 16], x_cookies: [1800, 18], x_applesauce: [360, 0],
+    x_fruitcups: [280, 2], x_grapes: [620, 6], x_oranges: [600, 10], x_icecream: [2100, 36], x_frzpizza: [1300, 55], x_coffee: [0, 0],
+    x_oj: [700, 10], x_sparkling: [0, 0], x_water: [0, 0], x_tea: [0, 0], x_creamer: [1300, 0]
 };
 // Spoils within about a week (used for the "fresh food used" meter and to steer away from waste).
 // Onions, potatoes, garlic, carrots, cheese, eggs, butter and frozen/canned food keep for weeks, and meat can be frozen.
