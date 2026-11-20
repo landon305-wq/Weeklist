@@ -255,3 +255,18 @@ button.item-price:hover { border-bottom-color: var(--green-2); }
 .ex-custom { display: grid; grid-template-columns: 1fr 110px auto; gap: 6px; }
 .ex-custom input { padding: 8px 10px; border: 1.5px solid var(--line); border-radius: 10px; font: inherit; }
 .btn.insta { border-color: #43b02a; color: #2b7a1b; }
+
+/* extras aisles + search */
+.ex-search { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; font: inherit; margin: 4px 0 8px; background: #fff; }
+.ex-search:focus { outline: none; border-color: var(--green-2); }
+details.ex-group { border-top: 1px solid var(--line); padding: 2px 0 8px; }
+details.ex-group > summary { list-style: none; cursor: pointer; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 2px 6px; }
+details.ex-group > summary::-webkit-details-marker { display: none; }
+details.ex-group > summary::after { content: '▾'; color: var(--muted); margin-left: 6px; transition: transform .15s; }
+details.ex-group:not([open]) > summary::after { transform: rotate(-90deg); }
+details.ex-group .ex-title { font-weight: 800; color: var(--green); font-size: .95rem; margin-right: auto; }
+details.ex-group > summary small { color: var(--muted); font-size: .8rem; }
+details.ex-group > summary small b { color: var(--green); }
+.ex-pro { font-style: normal; font-size: .72rem; font-weight: 800; color: #fff; background: var(--green-2); border-radius: 999px; padding: 1px 6px; vertical-align: 1px; }
+.ex-chip[hidden], details.ex-group[hidden] { display: none; }
+.tog.kcard { margin-top: 8px; font-size: .9rem; color: var(--ink); }

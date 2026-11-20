@@ -19,11 +19,11 @@ async function getToken(env) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': 'Basic ' + btoa(env.KROGER_CLIENT_ID + ':' + env.KROGER_CLIENT_SECRET)
+            'Authorization': 'Basic ' + btoa(String(env.KROGER_CLIENT_ID || '').trim() + ':' + String(env.KROGER_CLIENT_SECRET || '').trim())
         },
         body: 'grant_type=client_credentials&scope=product.compact'
     });
-    if (!res.ok) throw new Error('token ' + res.status);
+    if (!res.ok) throw new Error('token ' + res.status + ' ' + (await res.text()).slice(0, 300));
     const j = await res.json();
     token = j.access_token;
     tokenExpires = Date.now() + (j.expires_in || 1800) * 1000;
@@ -55,6 +55,17 @@ export default {
         }
         if (request.method !== 'GET') return new Response('Only GET', { status: 405, headers: cors });
 
+        // Key check: shows whether the keys look right, without revealing the secret
+        if (url.pathname === '/check') {
+            const id = env.KROGER_CLIENT_ID || '', sec = env.KROGER_CLIENT_SECRET || '';
+            const out = {
+                clientId: id.trim(), clientIdLength: id.length, clientIdHasSpaces: /\s/.test(id),
+                secretSet: !!sec, secretLength: sec.length, secretHasSpaces: /\s/.test(sec), secretLooksLikeId: sec.startsWith('weekcart-')
+            };
+            try { await getToken({ KROGER_CLIENT_ID: id.trim(), KROGER_CLIENT_SECRET: sec.trim() }); out.kroger = 'OK - keys accepted'; }
+            catch (e) { out.kroger = String(e.message || e); }
+            return json(out);
+        }
         if (!/^\/(locations|products)$/.test(url.pathname)) {
             return new Response(JSON.stringify({ ok: true, hint: 'Use /locations or /products' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
         }

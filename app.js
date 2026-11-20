@@ -25,7 +25,7 @@
     const SECTIONS = window.WC_SECTIONS, LAYOUTS = window.WC_LAYOUTS, CATS = window.WC_CATEGORIES;
     const CHAINS = window.WC_CHAINS, NUTR = window.WC_NUTR, PERISH = new Set(window.WC_PERISHABLE);
     const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const KEY_SET = 'weekcart_settings_v1', KEY_PLAN = 'weekcart_plan_v2', KEY_LIVE = 'weekcart_live_v1', KEY_MY = 'weekcart_myprices_v1';
+    const KEY_SET = 'weekcart_settings_v1', KEY_PLAN = 'weekcart_plan_v2', KEY_LIVE = 'weekcart_live_v2', KEY_MY = 'weekcart_myprices_v1';
     const GI = window.WC_GROCERY_INDEX;
 
     const $ = id => document.getElementById(id);
@@ -39,8 +39,11 @@
     let S = Object.assign({
         store: 'aldi', storeInfo: null, zip: '', budget: 100, people: 4, dinners: 5, breakfast: false, lunch: false,
         proteins: [], styles: [], avoid: [], staples: true, worker: '', krogerLoc: null,
-        calGoal: '', proGoal: '', snacks: false, leftovers: false, minWaste: false, instacart: false
+        calGoal: '', proGoal: '', snacks: false, leftovers: false, minWaste: false, instacart: false, krogerCard: false, workerOff: false
     }, recall(KEY_SET) || {});
+    // Live Kroger prices are on for everyone through the site's shared helper, unless you turned them off or set your own
+    const DEFAULT_WORKER = 'https://weekcart.landon305.workers.dev';
+    if (!S.worker && !S.workerOff) S.worker = DEFAULT_WORKER;
     if (!CHAINS.some(c => c.id === S.store)) S.store = 'aldi';
     let PLAN = recall(KEY_PLAN);
     let LIVE = null;      // live Kroger prices: { locId, date, items: { id: {price, units, name, aisle, aisleNum, url, size} } }
@@ -85,7 +88,7 @@
     const myPrice = id => (MY[S.store] && MY[S.store][id] > 0) ? MY[S.store][id] : null;
     let priceCache = {}, priceKey = '';
     function priceOf(id) {
-        const l = liveFor(id); if (l) return l.price;
+        const l = liveFor(id); if (l) return S.krogerCard && l.promo > 0 && l.promo < l.reg ? l.promo : (l.reg || l.price);
         const mine = myPrice(id); if (mine) return mine;
         const key = S.store + '|' + S.zip;
         if (priceKey !== key) { priceCache = {}; priceKey = key; }
@@ -209,15 +212,24 @@
         let pro = d.pro + (d.covers.breakfast ? 0 : 15) + (d.covers.lunch ? 0 : 20);
         const pool = RECIPES.filter(r => r.type === 'snack' && allowed(r) && (!S.proteins.length || r.pro === 'veg' || S.proteins.includes(r.pro)));
         const out = [];
-        const shuffled = shuffle(pool);
+        // seeded per plan, so re-fitting portions doesn't reshuffle the snacks
+        if (!plan.snackSeed) plan.snackSeed = 1 + Math.floor(Math.random() * 2147483646);
+        let seed = plan.snackSeed;
+        const rnd = () => { seed = (seed * 48271) % 2147483647; return seed / 2147483647; };
+        const sorted = pool.slice().sort((a, b) => a.id < b.id ? -1 : 1);
         for (let i = 0; i < 4; i++) {
             const calGap = g.cal ? g.cal - cal : 0, proGap = g.pro ? g.pro - pro : 0;
-            // a snack can repeat once (two a day), but not more
-            const opts = shuffled.filter(r => { const o = out.find(x => x[0] === r.id); return !o || o[1] < 2; });
-            let best = null;
-            if (proGap > 6) best = opts.filter(r => !g.cal || r.nu.cal <= Math.max(calGap, 0) + 120).sort((a, b) => (b.nu.pro + 0.02 * Math.min(b.nu.cal, Math.max(calGap, 0))) / Math.max(60, b.nu.cal) - (a.nu.pro + 0.02 * Math.min(a.nu.cal, Math.max(calGap, 0))) / Math.max(60, a.nu.cal))[0];
-            else if (calGap > 120) best = opts.filter(r => r.nu.cal <= calGap + 100).sort((a, b) => (b.nu.cal + b.nu.pro * 4) - (a.nu.cal + a.nu.pro * 4))[0];
-            if (!best) break;
+            // a snack can repeat once (two a day), but not more, and new ones are preferred
+            const opts = sorted.filter(r => { const o = out.find(x => x[0] === r.id); return !o || o[1] < 2; });
+            let cands = [];
+            if (proGap > 6) cands = opts.filter(r => !g.cal || r.nu.cal <= Math.max(calGap, 0) + 120)
+                .map(r => [r, (r.nu.pro + 0.02 * Math.min(r.nu.cal, Math.max(calGap, 0))) / Math.max(60, r.nu.cal)]);
+            else if (calGap > 120) cands = opts.filter(r => r.nu.cal <= calGap + 100).map(r => [r, r.nu.cal + r.nu.pro * 4]);
+            if (!cands.length) break;
+            cands.forEach(c => { if (out.find(x => x[0] === c[0].id)) c[1] *= 0.6; });
+            cands.sort((a, b) => b[1] - a[1]);
+            const top = cands.filter(c => c[1] >= cands[0][1] * 0.72).slice(0, 8);
+            const best = top[Math.floor(rnd() * top.length)][0];
             const o = out.find(x => x[0] === best.id);
             if (o) o[1]++; else out.push([best.id, 1]);
             cal += best.nu.cal; pro += best.nu.pro;
@@ -467,7 +479,12 @@
         const measure = /^(slices?|cloves?|stalks?|heads?|bunch(es)?|packs?|packets?|cans?|jars?|cups?|tbsp|tsp|oz|lb)$/.test(unit);
         return measure ? `${frac(q)} ${unit} ${ingName(it)}` : `${frac(q)} ${unit}`;
     }
-    const pkgText = (r) => { const pk = r.live ? (r.live.size || '') : r.it.pk; return pk; };
+    const pkgText = (r) => {
+        if (!r.live) return r.it.pk;
+        let t = r.live.size || '';
+        if (r.live.promo > 0 && r.live.promo < r.live.reg) t += S.krogerCard ? ` · 🏷️ card sale (reg. ${money(r.live.reg)})` : ` · 🏷️ ${money(r.live.promo)} with Kroger card`;
+        return t;
+    };
     function leftoverText(r) {
         const f = r.leftFrac;
         const amt = f >= 0.9 ? 'almost a whole' : f >= 0.6 ? 'about ⅔ of a' : f >= 0.45 ? 'about half a' : 'about ⅓ of a';
@@ -482,7 +499,8 @@
     }
     function storeHint() {
         const c = chain();
-        if (c.kroger && S.worker) return `<span class="live-dot"></span> Live prices and real aisle numbers from ${S.krogerLoc ? esc(S.krogerLoc.name) : 'your nearest ' + esc(c.name) + '-family store'}.`;
+        if (c.kroger && S.worker) return `<span class="live-dot"></span> Live prices and real aisle numbers from ${S.krogerLoc ? `<b>${esc(S.krogerLoc.name)}</b>${S.krogerLoc.addr ? ' (' + esc(S.krogerLoc.addr) + ')' : ''}` : 'your nearest ' + esc(c.name) + '-family store'}. Meat and produce sold by the pound are priced as a whole typical package, like at the register.
+            <label class="tog kcard"><input type="checkbox" id="f-kcard" ${S.krogerCard ? 'checked' : ''}><span></span> 🏷️ I use a Kroger card (count card sale prices)</label>`;
         let t = (c.id === 'local' ? 'Typical supermarket prices' : `Typical ${esc(c.name)} prices`) + ', ' + regionText() + '.';
         t += myCount() ? ` Using ${myCount()} price${myCount() === 1 ? '' : 's'} you entered.` : ' Tap any price on your list to enter what you really paid.';
         t += ' <a href="#" data-act="settings">Ways to get real prices</a>';
@@ -575,7 +593,7 @@
         const pct = Math.min(100, L.total / S.budget * 100);
         const servings = mealsOf(PLAN).reduce((s, [rid, m]) => s + m * servesOf(R[rid]), 0);
         const over = L.total > S.budget;
-        const src = chain().kroger && LIVE ? `Live prices from ${S.krogerLoc ? esc(S.krogerLoc.name) : 'Kroger'} · ${esc(LIVE.date)}`
+        const src = chain().kroger && LIVE ? `Live prices from ${S.krogerLoc ? esc(S.krogerLoc.name) + (S.krogerLoc.addr ? ', ' + esc(S.krogerLoc.addr) : '') : 'Kroger'} · ${esc(LIVE.date)}${S.krogerCard ? ' · with Kroger card sales' : ' · regular prices'}`
             : `Estimated ${esc(chain().id === 'local' ? 'typical supermarket' : chain().name)} prices ${regionText()}${myCount() ? `, plus ${myCount()} of your own` : ''}`;
         const head = `<div class="card summary">
             <div class="sum-top"><div><div class="kicker">THIS WEEK AT ${esc(storeLabel().toUpperCase())}</div><div class="sum-total ${over ? 'over' : ''}">${money(L.total)}<small> of ${money(S.budget)}</small></div></div>
@@ -602,22 +620,50 @@
             <p>Set your budget, goals and what you like to eat. WeekCart picks dinners that share ingredients (so less goes to waste), adds up exactly what to buy in real package sizes, and puts the list in the order you walk the store.</p></div>`;
     }
 
-    const EXTRA_GROUPS = [
+    const EXTRA_GROUPS = window.WC_EXTRA_GROUPS || [
         ['🍿 Snacks', ['x_granolabar', 'x_protbar', 'x_crackers', 'x_cheesecrackers', 'x_pretzels', 'x_popcorn', 'x_potatochips', 'chips', 'x_trailmix', 'x_cookies', 'x_applesauce', 'x_fruitcups']],
         ['💪 Protein snacks', ['stringcheese', 'yogcup', 'jerky', 'protpowder', 'edamame', 'hummus', 'cottage', 'eggs']],
         ['🍎 Fruit & veggies', ['banana', 'apple', 'x_grapes', 'x_oranges', 'berries', 'babycarrot', 'cucumber']],
         ['🥤 Drinks', ['x_coffee', 'x_creamer', 'x_oj', 'milk', 'x_sparkling', 'x_water', 'x_tea']],
         ['🧊 Frozen treats & easy meals', ['x_icecream', 'x_frzpizza', 'frzwaffle']]
     ];
+    let exQuery = '';
+    const exOpen = { 0: true };
+    const exOk = id => ITEMS[id] && !(ITEMS[id].alg || []).some(x => S.avoid.includes(x));
+    function exProteinTag(id) {
+        const nu = NUTR[id], it = ITEMS[id];
+        if (!nu || it.p <= 1 || nu[1] < 6 || !nu[0] || nu[1] * 4 / nu[0] < 0.2) return '';
+        return ` <i class="ex-pro">${Math.round(nu[1])}g/${esc(it.u)}</i>`;
+    }
     function extrasPanel() {
         const ex = PLAN.extras || {};
-        const groups = EXTRA_GROUPS.map(([title, ids]) => `<div class="ex-group"><h4>${title}</h4><div class="ex-chips">${ids.filter(id => ITEMS[id]).map(id => {
+        const chip = id => {
             const n = ex[id] || 0;
-            return `<span class="ex-chip ${n ? 'on' : ''}"><button type="button" data-addextra="${id}">${esc(ITEMS[id].n)} <small>${money(priceOf(id))}</small>${n ? ` <b>×${n}</b>` : ' ＋'}</button>${n ? `<button type="button" class="ex-minus" data-subextra="${id}" aria-label="One less">−</button>` : ''}</span>`;
-        }).join('')}</div></div>`).join('');
+            return `<span class="ex-chip ${n ? 'on' : ''}" data-name="${esc((ITEMS[id].n + ' ' + (ITEMS[id].t || '')).toLowerCase())}"><button type="button" data-addextra="${id}">${esc(ITEMS[id].n)}${exProteinTag(id)} <small>${money(priceOf(id))}</small>${n ? ` <b>×${n}</b>` : ' ＋'}</button>${n ? `<button type="button" class="ex-minus" data-subextra="${id}" aria-label="One less">−</button>` : ''}</span>`;
+        };
+        const total = EXTRA_GROUPS.reduce((t, [, ids]) => t + ids.filter(exOk).length, 0);
+        const groups = EXTRA_GROUPS.map(([title, ids], gi) => {
+            const list = ids.filter(exOk); if (!list.length) return '';
+            const added = list.filter(id => ex[id]).length;
+            return `<details class="ex-group" data-gi="${gi}" ${exOpen[gi] ? 'open' : ''}><summary><span class="ex-title">${title}</span><small>${list.length} items${added ? ` · <b>${added} added</b>` : ''}</small></summary><div class="ex-chips">${list.map(chip).join('')}</div></details>`;
+        }).join('');
         return `<div class="card extras"><div class="ex-head"><h3>➕ Snacks & extras</h3><button class="btn small ghost" data-act="extras">Done</button></div>
-            <p class="hint">Tap to add to your list (tap again for more). They're added to your total and sorted into the right aisle.</p>${groups}
-            <div class="ex-group"><h4>✏️ Something else</h4><div class="ex-custom"><input id="ex-name" placeholder="Item (e.g. paper towels)"><div class="money-in"><span>$</span><input id="ex-price" type="number" step="0.01" min="0" placeholder="0.00"></div><button class="btn small primary-soft" data-act="addcustom">Add</button></div></div></div>`;
+            <p class="hint">Browse ${total} items by aisle, or search. Tap to add (tap again for more). They go into your total and the right aisle. Items with a green <i class="ex-pro">g</i> tag are high in protein.</p>
+            <input id="ex-search" class="ex-search" type="search" placeholder="🔍 Search snacks, drinks, frozen, paper towels…" value="${esc(exQuery)}" autocomplete="off">
+            <p class="hint ex-none" id="ex-none" hidden>Nothing matches. Add it yourself below. ⬇️</p>
+            ${groups}
+            <div class="ex-group"><h4>✏️ Something else</h4><div class="ex-custom"><input id="ex-name" placeholder="Item (e.g. birthday candles)"><div class="money-in"><span>$</span><input id="ex-price" type="number" step="0.01" min="0" placeholder="0.00"></div><button class="btn small primary-soft" data-act="addcustom">Add</button></div></div></div>`;
+    }
+    function filterExtras() {
+        const q = exQuery.trim().toLowerCase(), words = q.split(/\s+/).filter(Boolean);
+        let any = false;
+        document.querySelectorAll('details.ex-group').forEach(d => {
+            let vis = 0;
+            d.querySelectorAll('.ex-chip').forEach(c => { const ok = words.every(w => c.dataset.name.includes(w)); c.hidden = !ok; if (ok) vis++; });
+            d.hidden = !vis; if (vis) any = true;
+            d.open = q ? vis > 0 : !!exOpen[d.dataset.gi];
+        });
+        const none = document.getElementById('ex-none'); if (none) none.hidden = !q || any;
     }
     function listView(L) {
         const groups = L.groups.map(g => `<section class="aisle"><h3>${g.icon} ${esc(g.label)}</h3>${g.rows.map(r => {
@@ -798,6 +844,7 @@
             $('one-hint').hidden = !(S.people === 1 && !S.leftovers);
         }));
         $('f-zip').oninput = e => { S.zip = e.target.value.replace(/\D/g, '').slice(0, 5); e.target.value = S.zip; saveSettings(); };
+        if (!window.__kcard) { window.__kcard = true; document.addEventListener('change', e => { if (e.target && e.target.id === 'f-kcard') { S.krogerCard = e.target.checked; priceCache = {}; saveSettings(); if (PLAN) renderResults(); } }); }
         $('f-zip').onchange = () => { $('store-hint').innerHTML = storeHint(); bindSettingsLinks(); if (PLAN) renderResults(); };
         $('f-budget').oninput = e => { const v = parseFloat(e.target.value); if (v > 0) { S.budget = v; saveSettings(); } };
         $('f-breakfast').onchange = e => { S.breakfast = e.target.checked; saveSettings(); };
@@ -828,6 +875,9 @@
         const bumpExtra = (id, d) => { PLAN.extras = PLAN.extras || {}; PLAN.extras[id] = Math.max(0, (PLAN.extras[id] || 0) + d); if (!PLAN.extras[id]) delete PLAN.extras[id]; store(KEY_PLAN, PLAN); const y = window.scrollY; renderResults(); window.scrollTo(0, y); };
         document.querySelectorAll('[data-addextra]').forEach(b => b.onclick = () => bumpExtra(b.dataset.addextra, 1));
         document.querySelectorAll('[data-subextra]').forEach(b => b.onclick = () => bumpExtra(b.dataset.subextra, -1));
+        const exs = document.getElementById('ex-search');
+        if (exs) { exs.oninput = () => { exQuery = exs.value; filterExtras(); }; filterExtras(); }
+        document.querySelectorAll('details.ex-group').forEach(d => d.ontoggle = () => { if (!exQuery.trim()) exOpen[d.dataset.gi] = d.open; });
         document.querySelectorAll('[data-unextra]').forEach(b => b.onclick = () => {
             const id = b.dataset.unextra;
             if (/^c\d+$/.test(id)) PLAN.custom.splice(+id.slice(1), 1); else if (PLAN.extras) delete PLAN.extras[id];
@@ -994,15 +1044,24 @@
             if (must && !must.test(desc)) return;
             if (not && not.test(desc)) return;
             const item = (p.items || [])[0]; if (!item || !item.price) return;
-            const reg = item.price.regular, promo = item.price.promo;
-            const price = promo > 0 && promo < reg ? promo : reg;
-            if (!(price > 0)) return;
-            const size = parseSize(item.size);
-            let units = it.p;
-            if (size && size.oz && it.oz) units = size.oz / it.oz;
-            else if (size && size.ct && it.ct) units = size.ct * it.ct;
-            if (!(units > 0) || units / it.p > 25 || units / it.p < 0.04) units = it.p;
-            const per = price / units;
+            const byWeight = item.soldBy === 'WEIGHT';
+            let reg = item.price.regular, promo = item.price.promo > 0 && item.price.promo < reg ? item.price.promo : 0;
+            if (!(reg > 0)) return;
+            let units = it.p, sizeText = item.size || '';
+            if (byWeight) {
+                // Kroger quotes these per pound; you have to buy a whole package, so price a typical one
+                const lbs = it.u === 'lb' ? it.p : (it.oz ? it.p * it.oz / 16 : 1);
+                const perLb = reg;
+                reg = Math.round(perLb * lbs * 100) / 100;
+                if (promo) promo = Math.round(promo * lbs * 100) / 100;
+                sizeText = `≈${Math.round(lbs * 10) / 10} lb pack at ${money(perLb)}/lb`;
+            } else {
+                const size = parseSize(item.size);
+                if (size && size.oz && it.oz) units = size.oz / it.oz;
+                else if (size && size.ct && it.ct) units = size.ct * it.ct;
+                if (!(units > 0) || units / it.p > 25 || units / it.p < 0.04) units = it.p;
+            }
+            const per = reg / units;
             const ratio = units / it.p;
             // sanity check against the usual price: way too cheap or pricey usually means the wrong product or size
             const vsUsual = per / (it.k / it.p);
@@ -1010,7 +1069,7 @@
             const score = per * (ratio > 3.5 || ratio < 0.3 ? 1.6 : 1);
             const aisle = (p.aisleLocations || [])[0];
             if (!best || score < best.score) best = {
-                score, price, units, name: desc, size: item.size || '', sale: promo > 0 && promo < reg,
+                score, price: reg, reg, promo, units, name: desc, size: sizeText, byWeight,
                 aisle: aisle ? (aisle.description || (aisle.number ? 'Aisle ' + aisle.number : '')) : '', aisleNum: aisle ? aisle.number : '',
                 url: p.productPageURI ? 'https://www.kroger.com' + p.productPageURI.split('?')[0] : ''
             };
@@ -1041,7 +1100,7 @@
                 <li>Paste your worker's address below. It looks like <code>https://weekcart.yourname.workers.dev</code>.</li>
             </ol>
             <label for="s-worker">Worker address</label>
-            <input id="s-worker" placeholder="https://weekcart.yourname.workers.dev" value="${esc(S.worker)}">
+            <input id="s-worker" placeholder="${DEFAULT_WORKER}" value="${esc(S.worker)}">
             <div class="dialog-btns"><button class="btn primary" id="s-save">Save & test</button>${S.worker ? '<button class="btn ghost" id="s-off">Turn off</button>' : ''}</div>
             <div id="s-msg" class="hint"></div>
             ${S.krogerLoc ? `<p class="hint">Current store: <b>${esc(S.krogerLoc.name)}</b> ${esc(S.krogerLoc.addr || '')}</p>` : ''}
@@ -1064,7 +1123,7 @@
             const url = $('s-worker').value.trim();
             const msg = $('s-msg');
             if (!/^https:\/\//.test(url)) { msg.textContent = 'The address should start with https://'; return; }
-            S.worker = url; S.krogerLoc = null; saveSettings();
+            S.worker = url; S.workerOff = false; S.krogerLoc = null; saveSettings();
             msg.textContent = 'Testing…';
             try {
                 const ping = await fetch(url.replace(/\/+$/, '') + '/');
@@ -1077,7 +1136,7 @@
             } catch (e) { msg.textContent = '❌ ' + (e.message || 'Could not reach the worker.') + ' Check the address and the worker\'s secrets. (If you only set up Instacart, that\'s fine: just turn on the Instacart switch below.)'; }
         };
         $('s-insta').onchange = e => { S.instacart = e.target.checked; saveSettings(); if (PLAN) renderResults(); };
-        const off = $('s-off'); if (off) off.onclick = () => { S.worker = ''; S.krogerLoc = null; LIVE = null; saveSettings(); d.hidden = true; render(); };
+        const off = $('s-off'); if (off) off.onclick = () => { S.worker = ''; S.workerOff = true; S.krogerLoc = null; LIVE = null; saveSettings(); d.hidden = true; render(); };
     }
 
     // hooks for testing
